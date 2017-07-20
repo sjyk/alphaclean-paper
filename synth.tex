@@ -1,0 +1,63 @@
+\section{Synthesis Algorithm}
+In this section, we describe the synthesis algorithm.
+
+\begin{algorithm}[t]
+\KwData{Q, R, L, (k, $\gamma$)}
+
+Initialize $O$ as a priority queue with a singleton NOOP transformation\\
+
+\While{ $\exists ~ o \in O: \|o\| < k$ }
+{
+    \For{$o \in O: \|o\| < k$}{
+        
+        Pop $o$ from the queue.
+        
+        \For{$t \in L$}{
+             $o' = o \circ t$
+             
+             Push $o'$ with priority $\bar{Q}(o'(R))$.
+        }
+    }
+    
+    Pop all elements from with a priority greater than $\gamma$ times the lowest value in the queue.
+}
+
+\Return Lowest item on the queue
+\caption{Greedy Best-First Tree Search}
+\label{alg:main}
+\end{algorithm}
+
+
+\subsection{Greedy Best-First Tree Search}
+A best-first search expands the most promising nodes chosen according to a specified cost function.
+We consider a greedy version of this algorithm, which removes nodes on the frontier that are more than $\gamma$ times worse than the current best solution.
+Making $\gamma$ larger makes the algorithm asympotically consistent, whereas $\gamma=1$ is a pure greedy search.
+
+The algorithm is described in Algorithm \ref{alg:main}.
+The algorithm is initialized with an identity transformation. This identity transformation is placed on a priority queue where the priority is the aggregate quality after applying the transformation (in this case the quality of the original relation $R$).
+Then, the algorithm ``expands'' all elements on the queue with description length of less than $k$.
+By expansion, we mean that it removes the element from the queue composes the element with a transformation from the library.
+Then, it places the new composed transformation onto the priority queue with its new quality score as the priority.
+The algorithm then flushes the priority queue of all elements with priority more than $\gamma$ times worse than the current best solution.
+This process repeats until all elements on the queue have a description length of $k$.
+
+There are several basic optimizations that we can apply to make this algorithm more efficient.
+
+\vspace{0.25em}\noindent\textbf{Materialization: } The most expensive step in the search is the evaluation of the cost function as this requires executing $o'$ over the whole relation $R$. $o'$ is a composition of many transformations and may require a number of passes over the dataset.
+This can be avoided if we can materialize (either to disk or memory) the frontier, i.e., all of the elements in $O$.
+In general, the frontier might be exponentially large, but that is why we have a flushing procedure that limits the size with the hyper-parameter $\gamma$.
+
+\vspace{0.25em}\noindent\textbf{Parallelism: } The algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Synchronization can happen after all of the expanded nodes are evaluated.
+The one caveat if the platform on which \sys is running does not support a shared memory or shared disk, we have to be careful about how we materialize the intermediate results as they many not be collocated with the workers expanding the particular frontier node.
+
+\subsection{Machine Learning for Pruning}
+
+\begin{enumerate}
+    \item The output of the search is a sequence of operations parametrized by literal values for each block of data.
+    \item This can be treated as training data. For each operation, we know which literal values were selected and which were excluded. 
+    \item Train a classifier to predict this.
+    \item Greatly speeds up search on future blocks.
+    \item Canned set of features used.
+    
+\end{enumerate}
+

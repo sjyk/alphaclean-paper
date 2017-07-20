@@ -1,0 +1,35 @@
+\section{Library Generation}
+The first step of \sys is generating a library $L$ over which we will perform our search.
+
+\textbf{SK. TODO}
+
+\subsection{Transformation API}
+Data transformations are specified in terms of templates that can take different types of literal parameters.
+
+\begin{enumerate}
+    \item Value
+    \item Column
+    \item Predicate
+    \item Substring
+\end{enumerate}
+
+We provide a large set of these templates but users can write their own too.
+
+
+\subsection{Library Generation}
+Given a relation $R$, we populate the library with feasible literal values.
+
+\begin{enumerate}
+    \item Library gets large
+    \item Hints from quality functions about columns and predicates
+    \item Note how these optimizations are similar to those in Scorpion.
+\end{enumerate}
+
+\subsection{Blocking}
+Another approach to reduce the library size is to partition the relation into smaller logical blocks.
+
+\begin{enumerate}
+    \item Can sometimes be inferred from quality function.
+    \item Similar to what is done in entity resolution.
+\end{enumerate}
+
