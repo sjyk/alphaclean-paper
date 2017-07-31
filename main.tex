@@ -41,7 +41,7 @@
 
 \usepackage{courier}
 
-\lstset{basicstyle=\small\ttfamily,breaklines=true}
+\lstset{basicstyle=\scriptsize\ttfamily,breaklines=true}
 \lstset{framextopmargin=50pt}
 
 
@@ -176,19 +176,12 @@
 \maketitle
 
 \begin{abstract}
-In many data science applications, data cleaning is effectively manual with ad-hoc, single-use scripts and programs. This practice is problematic for
-reproducibility (sharing analysis between researchers), interpretability (explaining the findings of a particular analysis), and scalability
-(replicating the analyses on larger corpora). Most existing relational data cleaning systems are designed as stand-alone systems, often coupled with a
-DBMS, with poor language support for Python and R that are widely used in data science. We present a Python library, AlphaClean, that declaratively
-synthesizes data cleaning programs. AlphaClean is given a specification of quality (e.g., integrity constraints or a statistical model the data must
+Data cleaning is widely reported to be one of the most human-intensive steps in the analysis process.
+This paper presents a general purpose data cleaning system based on quality-based search over a language of possible data transformation.
+AlphaClean is given a specification of quality (e.g., integrity constraints or a statistical model the data must
 conform to) and a language of allowed data transformations, and it searches to find a sequence of transformations that best satisfices the quality
-specification. While the search problem is exponential in the support of the language, we apply a number of novel optimizations including: (1) hashing
-to remove search branches that lead to identical results, (2) merging branches that have non-conflicting "safe" transformations, and (3) leveraging a
-best-first AI search algorithm called SSS* with a learned prioritization heuristic. The discovered sequence of transformations defines an intermediate
-representation, which can be easily transferred between languages or optimized with a compiler. We evaluated AlphaClean on 8 Kaggle Competition
-Datasets, 3 Google Research Data Fusion Challenge Datasets, and on 3 datasets from an anonymous industrial collaborator. Results suggest that on the
-evaluated datasets AlphaClean is at parity with state-of-the-art systems in terms of accuracy, while generalizing to held out data. Furthermore, we show
-that our optimizations reduce search time by up-to 111 x and execution time by up-to 31 x.
+specification. While the search problem is exponential in the support of the language, we apply a number of novel optimizations including: 
+\textbf{SK. TODO Write}
 \end{abstract}
 
 
@@ -197,7 +190,8 @@ that our optimizations reduce search time by up-to 111 x and execution time by u
 
 \input{introduction.tex}
 \input{background.tex}
-\input{statement.tex}
+\input{architecture.tex}
+%\input{statement.tex}
 \input{library.tex}
 \input{synth.tex}
 \input{compiler.tex}

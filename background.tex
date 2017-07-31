@@ -72,13 +72,29 @@ find_replace(San Francisc, San Francisco, city_name)
 find_replace(NYC, NY, city_code)
 \end{lstlisting}
 
+
+\vspace{0.25em} \noindent\textbf{Complexity: } The search problem is extremely general, and it is not our intention to directly solve this problem in full generality.
+In fact, we can show that it is APX-Hard--that is, unless P=NP there does not exist a polynomial time approximation scheme.
+However, we find that this optimization problem is a good starting point and an analysis of the complexity illustrates a number of important structural features of the problem.
+
+\begin{proposition}
+\textsf{search(Q,R,L)} is \textsf{APX-Hard}
+\end{proposition}
+\begin{proof}[Sketch]
+Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
+Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem.
+\end{proof}
+
+This reduction gives us some insight into what makes this problem computationally hard, and why practical data cleaning problems may not have those features. \emph{(1)} Arbitrary constraint satisfaction problems are challenging because all variables can interact. While this is certainly the case for arbitrary quality functions, in many cases, data errors are localized. For example, replacing \texttt{San Francisc} with \texttt{San Francisco} has no effect on the records referring to \texttt{New York City}.  \emph{(2)} Arbitrary constraint satisfaction involves assignments to all variables. On the other hand, in data cleaning, hopefully the majority of records in a dataset are clean so there is a structure that can be exploited.
+ \emph{(3)} Constraint satisfaction does not model context, each variable is simply a Boolean value. In data cleaning, we can pragmatically exploit similarity. Similar records should be cleaned in similar ways.  
+
 Several automatic approaches have been proposed to minimally resolve inconsistent functional dependencies~(see survey ~\cite{DBLP:conf/sigmod/ChuIKW16}), and these algorithms are far more efficient than the proposed search for the proposed example.
 With no additional information, the search approach described above would have to evaluate $61^3 = 226981$ transformations, which is clearly impractical even for this small example.
 However, this formalism is starting point on which we can add instance-specific optimizations.
 In the next section, we describe how instance-specific optimizations can be specified.
 
 
-\subsection{Optimizations}
+\subsection{Search Optimizations}
 A formal language framework provides a consistent interface for specifying optimizations. We consider the following types of optimizations:
 
 \vspace{0.5em}\noindent\textbf{Static Optimizations: } A static optimization is a regular expression that all transformation sequences must satisfy independent of the data. 
@@ -101,21 +117,35 @@ For quality functions generated from dependencies, we can determine blocks analy
 However, in general, these blocking rules can be learned (e.g., with clustering) or user defined.
 The search can execute on each of the blocks independently.
 
-\vspace{0.5em}\noindent\textbf{Learned Optimizations: }
+
+\vspace{0.5em}\noindent\textbf{Learned Optimizations: } Additionally, \sys can apply machine learning techniques to prune search branches.
+To do this, all the transformations in the language have to be featurized to a $d$ dimensional vector:
+\[
+\textsf{feat}(T) \mapsto \mathbb{R}^d
+\]
+\sys trains a classifier that maps the d-dimensional vector to $0$ (keep) or $1$ (prune).
+This allows the search to execute much faster on future data (or future blocks).
+
+As an example, consider the sequence of transformations described in the example:
+\begin{lstlisting}
+find_replace(New York, New York City, city_name)
+find_replace(San Francisc, San Francisco, city_name)
+find_replace(NYC, NY, city_code)
+\end{lstlisting}
+One observation is that the source and target strings in the optimal sequence are very close in terms of string similarity (as opposed to arbitrary transformations).
+If each of these operations was featurized with a single scalar that is the edit-distance between the two strings, then the classifier could learn a pruning threshold (i.e., not considering find-and-replace operations above that threshold).
 
 
-\subsection{Beyond Logical Constraints}
-The challenge is that an equally ``optimal'' solution could instead be:
+\subsection{Beyond Classical Data Cleaning}
+\sys allows us to go beyond operations typically considered in declarative data cleaning systems and search more complex languages of transformations.
+
+\vspace{0.5em}\noindent\textbf{User-defined transformations: }
+One lesson from the above example is that it synthesizes transformations that have no knowledge of the semantics of the data (i.e., we could hash the entire dataset and still get the same results).
+The issue with such an approach is that an equally ``optimal'' solution could instead be:
 \begin{lstlisting}
 find_replace(San Francisco, San Francisc, city_name)
 \end{lstlisting}
-While optimal in terms of cost, this is semantically incorrect. For large datasets, such corner cases are unavoidable and erode trust in automatic data cleaning.
-Consequently, automated data repair is often combined with human verification with experts or crowds~\cite{gokhale2014corleone, park2014crowdfill, DBLP:journals/pvldb/YakoutENOI11, chu2015katara, DBLP:journals/pvldb/HaasKWF015,marcus2015crowdsourced}.
-While this is certainly a viable and popular option, it is also desirable to make the automated cleaning as reliable as possible to reduce the verification burden.
-
-
-One lesson from the above example is that it synthesizes transformations that have no knowledge of the semantics of the data (i.e., we could hash the entire dataset and still get the same results).
-If instead the synthesis was allowed to leverage higher-level transformations, we could mitigate this pitfall.
+Problems like this can be avoided with user-defined transformations.
 For example, suppose we had a function that given a column deleted all cells that fail a spell check:
 \begin{lstlisting}
 spellcheck(city_name)
@@ -137,7 +167,6 @@ After applying this transformation, the resulting relation is:
 7 & New York City                                & NY                                  \\ \hline
 \end{tabular}
 \end{table}
-
 After this transformation, there is no ambiguity in the minimal repair:
 \begin{lstlisting}
 spellcheck(city_name)
@@ -146,6 +175,7 @@ find_replace(None, San Francisco, city_name)
 find_replace(NYC, NY, city_code)
 \end{lstlisting}
 If such a function were available (and we knew when to use it), it would greatly improve the reliability of any subsequent automated cleaning.
+
 
 \subsection{Program Optimization}
 Another benefit to explicitly modeling data cleaning as a program synthesis problem is that the discovered sequence of transformations defines an intermediate
@@ -179,15 +209,7 @@ for r in rows:
 \end{figure}
 
 
-\subsection{System Architecture}
 
-\textbf{TODO}
-
-\begin{enumerate}
-    \item Synthesis
-    \item Generalization
-    \item Optimization
-\end{enumerate}
 
 
 

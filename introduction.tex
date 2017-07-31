@@ -1,43 +1,52 @@
 \section{Introduction}\label{intro}\sloppy
-Modern data scientists have vast amounts of data at their disposal from social media, the internet-of-things, and a growing number of open datasets.
-While these new data sources are prolific, they are also substantially more variable and inconsistent than the carefully curated business data used by analysts in the past.
-Consequently, every new analysis project will involve some amount of data cleaning as a first step--to resolve inconsistencies, impute missing values, and delete irrelevant data.
+Almost every industry has access to significantly more data than would have been imaginable even a decade ago.
+The role of a data scientist to sift through these large datasets, extract meaningful insights, build statistical models, and ultimately, design new  intelligent services. 
+While these new datasets are prolific, they are also susceptible to various forms of data error including incompleteness, inconsistent representations, and corrupted data.
+Consequently, every new project will involve some amount of data cleaning and data integration before data analysis can begin.
 
-Data cleaning is widely reported to be one of the most human-intensive steps in the analysis process.
-In a typical workflow, the data scientist must first run a preliminary analysis to identify obvious issues, e.g., through visualization, and then write rules that repair or remove erroneous tuples.
-It is often the case that the process is iterative, either because the analyst missed more subtle issues in the first pass or because the rules themselves were faulty and have to be modified. 
-This painstaking trial-and-error procedure is absolutely necessary, and is a major concern for industrial data scientists ~\cite{krishnan2016hilda}. 
+Data cleaning is a significant use case for recent cohort of distributed data processing frameworks such as Hadoop, Spark, Tupleware, and Myria.
+While these frameworks reduce the computational burden of cleaning and preparing data at scale, the human cost of actually writing data cleaning programs can still be extensive.
+Data cleaning is widely reported to be one of the most effort-intensive steps in the analysis process. 
+The data scientist often has to first run a preliminary analysis to identify obvious issues, e.g., through aggregate statistics or visualization, and then write code that repairs or remove erroneous tuples.
+Once an initial cleaning program is written, it is often the case that the process is iterative, where the analyst eventually notices corner cases that the code misses and refines the program. 
+Data cleaning scripts quickly grow in size and their ad-hoc development makes them brittle and hard to maintain~\cite{krishnan2016hilda}.
 
+Classically, data cleaning is formalized through integrity constraints satisfaction. The data scientist models her data with a formal language of logical constraints (e.g., functional dependencies, denial constraints, inclusion dependencies). If the database violates one of the constraints, an algorithm finds minimal updates to the database to enforce constraint satisfaction.
+More generally, we can consider integrity constraints as a special case of a two-step process: a method to specify a high-level data model, a search over an allowed set of modifications to the database to best match the data to the specified model.
+In particular, we can consider a search over a formal language of transformations (i.e., allowed data cleaning operations and how they can compose) to find a sequence of transformations that optimizes a quality function (i.e., a function that scores every database instance).
+This generalized perspective allows us to consider many different data cleaning and preparation steps in a similar formalism.
+Different languages of transformations and different quality functions, we can get different data cleaning properties with a single underlying search algorithm.
 
-Therefore, it is not surprising that a big focus of recent data cleaning research is to reduce the burden in writing such rules, for example, automatically generating filters from interactive visualizations~\cite{DBLP:journals/pvldb/0002M13}, sampling~\cite{DBLP:journals/debu/KrishnanWFGKM015}, programming-by-example~\cite{wrangler,trifacta}, and crowdsourcing~\cite{gokhale2014corleone,  DBLP:journals/pvldb/YakoutENOI11,  DBLP:journals/pvldb/HaasKWF015,marcus2015crowdsourced}.
-Basically, these approaches require explicit supervision on a small number of examples, where a human provides the corresponding clean value, and then, try to automatically extrapolate results to the full dataset.
-This raises an important question not typically studied in the classical data integrity literature, namely, \emph{generalization}, where rules and transformations have to apply to future, unseen data.
-Generalization in data cleaning is akin to generalization in machine learning, where simpler rules are likely to generalize and complex rules can overfit to the current database instance.
+\begin{figure}
+\includegraphics[width=\columnwidth]{figures/intro.png}
+\caption{AlphaClean  is  given  a  specification  of  quality(e.g.,  integrity  constraints  or  a  statistical  model  the  data must conform to) and a language of allowed data transformations,  and it searches to find a sequence of transformations that best optimizes the quality specification.  }
+\end{figure}
 
-With this perspective, one can actually view the aforementioned work as different types of restrictions on the allowed transformation rules to achieve improved generalization. 
-For example, one can approximate complex SQL predicates with a simpler class of functions as in systems like Corleone and Scorpion~\cite{gokhale2014corleone, DBLP:journals/pvldb/0002M13}.
-In these systems, instead of considering arbitrary SQL predicates, one only considers predicates that can be represented with a decision tree of a certain depth and number of leaves.
-Similarly, this restriction is more explicit in systems like Data Wrangler~\cite{wrangler,trifacta} and Foofah~\cite{jin2017foofah}, which compose schema transformations using sequences of operations from a restricted domain specific language~\cite{raman2001potter}.
-By restricting the language, one can force the system to only search through transformations that could apply to future data.
-
-
-This paper explores whether we can build a general purpose data cleaning system by explicitly leveraging this insight. We explore whether we can cast data cleaning as a search over a formal language of transformations (i.e., allowed data cleaning operations and how they can compose) to find a sequence of transformations that optimizes a quality function.
-By changing the the language of transformations and the quality function, we can get different data cleaning properties with a single underlying search algorithm.
-For example, one might want to enforce a functional dependency relationship between zipcode and state $\textsf{Zip} \rightarrow \textsf{State}$. The quality function could be the number of tuples that satisfy the functional dependency.
-The language of transformations could be the set of functions that updates particular key pair $(z,s) \mapsto (z',s')$.
+For example, one can represent cleaning with integrity constraints in this framework.
+Consider a functional dependency relationship between zipcode and state $\textsf{Zip} \rightarrow \textsf{State}$. The quality function could be the number of tuples that satisfy the functional dependency.
+The language of transformations is the set of functions that updates particular key pair $(z,s) \mapsto (z',s')$.
 The search problem is to find a minimal sequence of such maps that optimizes the quality function.
-Similarly, suppose we want explanations of numerical outliers found in an aggregate view of the data.
-The quality function is the number of outliers in the view, and the transformation language is all possible deletions to the base data.
+The same framework can also handle numerical outliers.
+Suppose, we have an anomaly detector that detects statistical outliers found in an aggregate view of the data.
+We want to be able to find a filter on the base data that removes 
+the outliers from the view.
 The search problem is to find a minimal number of deletes that maximally removes outliers from the view.
-The most important feature of this formulation is that the output is not a cleaned database instance, but rather a transformation sequence.
 
-In general, this search problem is very difficult.
+This generality comes at the cost of the search time, and in general, this search problem is very difficult.
 An efficient solution to this search problem would imply an efficient solution to all MAX-SAT instances.
 Pragmatically, the system has to include optimizations that exploit the structure of typical data cleaning problems.
 We specify these optimizations as pruning rules on the language of transformations.
 These pruning rules can also be dynamic analyzing the quality functions and the data.
 In fact, these pruning rules can also be learned where data can be cleaned in blocks or samples and operations that were unsuccessful in the past can be filtered.
 This approach is inspired by similar approaches in AI, such as AlphaGo, which leverage learned scoring and pruning rules.
+These optimizations can make this expensive search process more practical.
+
+This approach has an additional benefit of applying to future unseen data.
+By synthesizing a sequence of transformations, we are actually finding a program and not just a clean database instance.
+This raises an important question not typically studied in the classical data integrity literature, namely, \emph{generalization}, where rules and transformations have to apply to future, unseen data.
+Generalization in data cleaning is akin to generalization in machine learning, where simpler rules are likely to generalize and complex rules can overfit to the current database instance.
+Implementing a form of ``regularization'' in this framework is straight-forward -- one simply has to restrict the language to less selective rules.
+
 
 
 \subsection*{\sys}
