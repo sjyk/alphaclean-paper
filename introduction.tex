@@ -12,10 +12,11 @@ Once an initial cleaning program is written, it is often the case that the proce
 Data cleaning scripts quickly grow in size and their ad-hoc development makes them brittle and hard to maintain~\cite{krishnan2016hilda}.
 
 Classically, data cleaning is formalized through integrity constraints satisfaction. The data scientist models her data with a formal language of logical constraints (e.g., functional dependencies, denial constraints, inclusion dependencies). If the database violates one of the constraints, an algorithm finds minimal updates to the database to enforce constraint satisfaction.
-More generally, we can consider integrity constraints as a special case of a two-step process: a method to specify a high-level data model, a search over an allowed set of modifications to the database to best match the data to the specified model.
-In particular, we can consider a search over a formal language of transformations (i.e., allowed data cleaning operations and how they can compose) to find a sequence of transformations that optimizes a quality function (i.e., a function that scores every database instance).
+More generally, we can consider integrity constraints as a special case of a two-step process: a method to specify a high-level data model, a search over an allowed set of modifications to the database to best match the specified model.
+We can consider an optimizing search over a formal language of transformations (i.e., allowed data cleaning operations and how they can compose) to find a sequence of transformations that optimizes a quality function (i.e., a function that scores every database instance).
 This generalized perspective allows us to consider many different data cleaning and preparation steps in a similar formalism.
 Different languages of transformations and different quality functions, we can get different data cleaning properties with a single underlying search algorithm.
+This paper explores designing a data cleaning framework built around the formalism of a quality maximizing search over a language of transformations.
 
 \begin{figure}
 \includegraphics[width=\columnwidth]{figures/intro.png}

@@ -1,9 +1,20 @@
-\section{Library Generation}
-The first step of \sys is generating a library $L$ over which we will perform our search.
+\section{Specification Layer}
+This layer translates a formal data model into a data cleaning specification.
 
-\textbf{SK. TODO}
+\subsection{Synthesizing Quality Functions}
+First, we describe how we translate existing data cleaning model into quality functions for use in \sys.
 
-\subsection{Transformation API}
+\subsubsection{Constraint-Based Data Cleaning}
+
+\subsubsection{Model-Based Data Cleaning}
+
+\subsubsection{Programming By Demonstrations}
+
+
+\subsection{Library Generation}
+Given a relation $R$, we populate the library with feasible literal values.
+
+\subsubsection{Transformation API}
 Data transformations are specified in terms of templates that can take different types of literal parameters.
 
 \begin{enumerate}
@@ -15,9 +26,6 @@ Data transformations are specified in terms of templates that can take different
 
 We provide a large set of these templates but users can write their own too.
 
-
-\subsection{Library Generation}
-Given a relation $R$, we populate the library with feasible literal values.
 
 \begin{enumerate}
     \item Library gets large
