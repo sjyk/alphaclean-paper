@@ -1,58 +1,237 @@
-\section{Existing Data Cleaning Systems}
-Existing data cleaning systems couple two concepts: the language for specifying the data model and the algorithm to enforce this specification.
-Each different family of systems is presented as an end-to-end solution for data cleaning.
-In \sys, we take a different perspective and decouple these aspects.
-We show that most data models can be written as a scoring function that determines the extent to which the current database instance matches the specification.
-Then, we have a single general-purpose search algorithm that finds transformations.
-This simplifies the design of these systems and makes it more flexible to apply them to domain specific use cases.
+\section{Background}
+First, we overview the basic formalism of \sys and present its relationship to related work.
+
+\subsection{Data Transformations}
+We focus on data transformations that concern a single relational table. 
+Let $R$ be an instance over a set of attributes $A$, and let $\mathcal{R}$ denote the set of all possible instances over $A$.
+A data transformation is a function that maps an instance $R \in \mathcal{R}$ to a new instance with the same schema $R' \in \mathcal{R}$: 
+\[T(R): \mathcal{R} \mapsto  \mathcal{R}\]
+Data transformations preserve schema and data type, and have a binary operator $\circ$, which denotes composition:
+\[
+(T_i \circ T_j)(R) =  T_i(T_j(R))
+\]
+Let $\Sigma$ define a set of distinct transformations $\{T_1, T_2,..,T_N\}$.
+Let $\Sigma^*$ be the set of all finite sub-sequences of $\Sigma$, i.e., $T_i(T_j(R))$.
+A formal language $L$ over  $\Sigma$ is a subset of $\Sigma^*$.
+
+
+\vspace{0.5em} \noindent \emph{Example 1: } As an example, given below is a relation with two attributes \textsf{city\_name} and \textsf{city\_code}. 
+Assuming unique city names, there should be a one-to-one map between city names and the city code. The problem is that the relation we have is inconsistent.
+
+\begin{table}[ht!]
+\centering
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor[HTML]{000000} 
+& {\color[HTML]{FFFFFF} city\_name}            & {\color[HTML]{FFFFFF} city\_code}   \\ \hline
+1 & San Francisco                                & SF                                  \\ \hline
+2& {\color[HTML]{FE0000} \textbf{New York}}     & NY                                  \\ \hline
+3 & New York City                                & {\color[HTML]{FE0000} \textbf{NYC}} \\ \hline
+4 & {\color[HTML]{FE0000} \textbf{San Francisc}} & SF                                  \\ \hline
+5 & San Jose                                     & SJ                                  \\ \hline
+6 & San Mateo                                    & SM                                  \\ \hline
+7 & New York City                                & NY                                  \\ \hline
+\end{tabular}
+\end{table}
+
+\noindent Consider the following function:
+\[
+\textsf{find\_replace}(\text{source}, \text{target}, \text{attribute})
+\]
+This function finds all cells with the source string, and replaces it with a target string, in the specified attribute.
+If we consider exact string matches and only target strings in the attribute's current domain, there are $61$ possible operations for the example relation.
+The set of all find-and-replace operations defines $\Sigma$.
+$\Sigma^*$ defines any finite sequences composed of these $61$ operations.
+$L$ is any subset of $\Sigma^*$. 
+For example, we may only want to consider sequences of length $k$.
+
+
+\subsection{Search Over Data Transformations}
+Every data cleaning problem in \sys is specified by a deterministic finite automaton (DFA). 
+A DFA is a 5-tuple:
+\[\langle S, A, \delta, s_0\rangle,\]
+where $S$ is a set of states that the process can be in, $A$ is a set of inputs that the process can take, $\delta$ is a transition function that takes as input a state and an input and transitions the process to the next state in $S$, and $s_0$ is an initial state of the process.
+
+The set of relations and the language of transformations defines a DFA:
+\[\langle \mathcal{R}, \Sigma, \delta, R_{dirty}\rangle, \]
+where the states $\mathcal{R}$ is the set of possible instances, the inputs are transformations from $\Sigma$, the transition function updates the instance with the transformation, and the initial state is the dirty instance $R_{dirty}$. Search problems can be defined over the DFA. 
+A quality function $Q$ maps an instance $R$ to a scalar where 1 implies it is clean:
+\[
+Q: \mathcal{R} \mapsto [0,1]
+\]
+A separable quality function is one that can be expressed as an average over cell-wise quality metrics $q(r,a)$ where 1 implies clean:
+\[
+Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
+\]
+Given a quality function $Q$, a relation $R$, and a language $L$, find a sequence of transformations $l \in L$ (a sequence of inputs to the DFA) that optimizes the quality function.
+\[
+\textsf{search}(Q,R,L) = ~ \min_{l \in L} Q( l(R) ).  
+\]
+
+\vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
+
+
+\vspace{0.5em} \noindent \textbf{Remark 2: } \textsf{search(Q,R,L)} is a hard problem. In fact, we can show that it is APX-Hard--that is, unless P=NP there does not exist a polynomial time approximation scheme.
+Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
+Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem.
+
+
+\vspace{0.5em} \noindent \emph{Example 2: } 
+One can model this constraint with two functional dependencies: $\textsf{city\_name} \rightarrow \textsf{city\_code}$ and $\textsf{city\_code} \rightarrow \textsf{city\_name}$.
+With these functional dependencies, identifying inconsistencies is efficient -- it requires querying for the set cities that map to more than one city code, and vice versa. 
+$Q(R)$ is a separable quality metric where each cell is assigned a 0  if it contains a violating key. One solution to the search problem is:
+\begin{lstlisting}
+find_replace(New York, New York City, city_name)
+find_replace(San Francisc, San Francisco, city_name)
+find_replace(NYC, NY, city_code)
+\end{lstlisting}
+
+\section{Taxonomy of Related Systems}
+Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).
+Next, we describe how different data cleaning paradigms can be cast as a sequential search problem.
 
 \subsection{Constraint-based Systems}
-\textbf{SK. citations missing}
-The classical model for data cleaning is using integrity constraints. The data scientist describes the relationships between attributes in terms of functional dependencies, conditional functional dependencies, denial constraints, and other constraints.
+The classical model for data cleaning is using integrity constraints. 
+The data scientist describes the relationships between attributes in terms of functional dependencies, conditional functional dependencies, denial constraints, and other types of logical constraint constraints.
 Then, if any of these constraints are violated, the system will search over updates to the inconsistent database instance to enforce the constraints.
-Most search algorithms are based on the ``chase'', which is a fixed-point iteration technique. The chase iteratively enforces a constraint for each tuple in violation (possibly introducing new violations), and iterates until satisfaction.
-Under suitable conditions the chase will converge to a fixed-point.
+Recent example systems include NADEEF~\cite{DBLP:conf/sigmod/DallachiesaEEEIOT13}, LLunatic~\cite{geerts2013llunatic}, Holistic Data Cleaning~\cite{chu2013holistic}, and Big Dansing~\cite{khayyat2015bigdansing}.
 
-One issue with the constraint-based model is that not all satisfying instances are created equal. For example, we may additionally want to minimize the number of edits to the database instance.
-Sometimes this edit cost more complex than simply counting the number of cells that are modified, e.g., information disclosure, minimize disagreement with statistical model.
-For these costs, the solution algorithms become substantially more complex and leverage different heuristics.
-We propose simplifying the design space by decoupling the search algorithm from the constraint specification.
-There is a cost for violating a constraint and there is a cost for editing the database.
-The total cost is a sum of the two terms.
-We can use general purpose search algorithm to optimize this objective function.
-Clearly, the generalized approach will be slower than the special purpose systems, but the added generality is very helpful.
-For example, we present an experiment on US Election contribution data with matching dependencies with an ``exotic'' editing cost determined by a pre-trained word2vec model. This performs a form of entity resolution where similarity is semantic rather than based on string similarity.
+While, \sys does not exactly enforce integrity constraints, it can support quality functions grounded in integrity constraints. 
+We construct a quality function that marks every cell that is in violation with a 0 and every cell that is not with a 1.
+The allowed language would be replacing any cell with another value in the attribute domain.
 
-\subsection{Statistical Model-based Systems}
-Another class of systems uses statistical properties to define data errors. Statistical models discriminatively define normal v.s. abnormal records.
-For each type of abnormality, the system associates a repair (e.g., deleting the record or setting it to a default value).
-These systems are on the opposite side of the tradeoff space to the constraint-based systems.
-In a sense, the data model is highly expressive, for example, the model that determines anomalies can be neural network. However, the edits that can be made to the database a very simple rules.
+\vspace{0.5em} \noindent \emph{Example.} Consider the following table of employee information:
 
-\textbf{SK. citations missing}
+\begin{table}[ht!]
+\centering
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor[HTML]{000000} 
+{\color[HTML]{FFFFFF} id}  & {\color[HTML]{FFFFFF} employee\_type}            & {\color[HTML]{FFFFFF} salary}   \\ \hline
+1 & Manager                                & 70000                                  \\ \hline
+2 & {\color[HTML]{FE0000}Manager}                                     & {\color[HTML]{FE0000}50000}                                 \\ \hline
+3 & {\color[HTML]{FE0000}Employee}                                    & {\color[HTML]{FE0000}65000}                                  \\ \hline
+4 & Employee                                & 40000                                  \\ \hline
+\end{tabular}
+\end{table}
+On this relation, we introduce a constraint that no manager can make less money than an employee. The quality function counts the number of cells that do not violate the constraints (2 cells from Manager id 1, 2 cells from Employee id 3, out of 8 total cells $Q(R) = 0.5$).
 
-However, these systems actually fit into the same design paradigm as the constraint-based systems.
-There is a function that scores a relation in terms of the amount of anomalous data (e.g., the number and magnitude of records 3 std. above the mean). There is an allowed language for editing the database (e.g., deletions and default value imputation).
-The search algorithm is to find transformations that optimize the objective.
+\vspace{0.5em}
 
-One benefit of casting statistical data cleaning in this formalism is improved handling of mixed datasets.
-For example, some datasets might have mixes of numerical and categorical data--both of which are dirty.
-We present an experiment using rainfall data from Ethiopia, where \sys is used to clean a dataset with both numerical and syntactic errors.
+While prior work are roughly speaking equivalent in expressiveness, they each have a different solution algorithm.
+For example, Dallachiesa et al. uses a SAT solver to enforce the constraints~\cite{DBLP:conf/sigmod/DallachiesaEEEIOT13}, Chu et al. uses a iterative algorithm that walks along a hypergraph~\cite{chu2013holistic}, and Geerts et al. is based on a fixed-point iteration~\cite{geerts2013llunatic}.
+Our goal with \sys is to reduce the complexity of such systems, by consolidating to a single general-purpose search algorithm and an API for specifying optimizations specific to particular problem classes.
+This means that the approach is more general and can handle novel combinations of data cleaning operations, e.g., denial constraints and numerical outliers.
 
-\subsection{Demonstration-based Systems}
-Finally, there are a handful of systems that adopt a programming-by-demonstration (PbD) approach to data cleaning.
-A human analyst manually cleans example records and the system searches to find a concise program that mimics this behavior.
+\subsection{Beyond Classical Data Cleaning}
+\sys allows us to go beyond operations typically considered in declarative data cleaning systems and search more complex languages of transformations.
+One lesson from the above example is that it synthesizes transformations that have no knowledge of the semantics of the data (i.e., we could hash the entire dataset and still get the same results).
+The issue with such an approach is that an equally ``optimal'' solution could instead be:
+\begin{lstlisting}
+find_replace(San Francisco, San Francisc, city_name)
+\end{lstlisting}
+Problems like this can be avoided with user-defined transformations.
+For example, suppose we had a function that given a column deleted all cells that fail a spell check:
+\begin{lstlisting}
+spellcheck(city_name)
+\end{lstlisting}
+After applying this transformation, the resulting relation is:
+\begin{table}[ht!]
+\centering
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor[HTML]{000000} 
+& {\color[HTML]{FFFFFF} city\_name}            & {\color[HTML]{FFFFFF} city\_code}   \\ \hline
+1 & San Francisco                                & SF                                  \\ \hline
+2& {\color[HTML]{FE0000} \textbf{New York}}     & NY                                  \\ \hline
+3 & New York City                                & {\color[HTML]{FE0000} \textbf{NYC}} \\ \hline
+4 & {\color[HTML]{005500} \textbf{None}} & SF                                  \\ \hline
+5 & San Jose                                     & SJ                                  \\ \hline
+6 & San Mateo                                    & SM                                  \\ \hline
+7 & New York City                                & NY                                  \\ \hline
+\end{tabular}
+\end{table}
+After this transformation, there is no ambiguity in the minimal repair:
+\begin{lstlisting}
+spellcheck(city_name)
+find_replace(New York, New York City, city_name)
+find_replace(None, San Francisco, city_name)
+find_replace(NYC, NY, city_code)
+\end{lstlisting}
+If such a function were available (and we knew when to use it), it would greatly improve the reliability of any subsequent automated cleaning.
 
-\textbf{SK. citations missing. Joes work and Cafferella's work}
+\subsection{Model-based Systems}
+Another class of systems uses statistical properties to define data errors, which is also called Quantitative Data Cleaning (see survey by Hellerstein~\cite{hellerstein2008quantitative}).
+A user can define a statistical model that the data should conform to, e.g., all numerical values must be concentrated with $p$ standard deviations from the mean. 
+More generally, one can use a model to score records to see how likely those value combinations are.
+When presented with data that explained well by this model, the system tries to replace the value.
+Example systems include Eracer~\cite{eracer}, SCARED~\cite{yakout2013don}, and dBOOST~\cite{pit2016outlier}.
+
+Such scoring functions naturally fit into the model of \sys.
+A statistical model can define the quality function and the user can chose preferred behavior for abnormal records.
+For example, one can chose to delete or impute with a default value.
+
+\vspace{0.5em} \noindent \emph{Example 1.} Consider the following table of sensor data.
+\begin{table}[ht!]
+\centering
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor[HTML]{000000} 
+  & {\color[HTML]{FFFFFF} Temperature}            & {\color[HTML]{FFFFFF} Humidity}   \\ \hline
+1 & 74.5 {\color[HTML]{00FE00}score: 5\%}                                 & 86.1 {\color[HTML]{00FE00}score: 2\%}                                  \\ \hline
+2 & 69.1  {\color[HTML]{00FE00} score: 2\%}                                   & 84.2 {\color[HTML]{00FE00}score: 6\%}                               \\ \hline
+3 & 67.1   {\color[HTML]{00FE00}score: 8\%}                                 & 32.1  {\color[HTML]{FE0000}score: 87\%}                                \\ \hline
+4 & 71.3  {\color[HTML]{00FE00}score: 1\%}                              & 83.1  {\color[HTML]{00FE00}score: 5\%}                                \\ \hline
+\end{tabular}
+\end{table}
+
+Each cell is scored by a an anomaly detector which marks a percentage confidence that the element is an anomaly (e.g., by the distance to the nearest neighbor). The quality function is the average score over the entire table.
+The search problem is to find a sequence of transformations that reduces the anomaly detection scores.
 
 
-Such approaches are clearly linked to \sys. The quality function is a score on each record on how accurately it matches a manually cleaned gold-standard. \sys can additionally couple automated and PbD approaches. We present an example on a survey dataset from Phillipines where manual cleaning is needed for domain specific content but automated cleaning can be used for generic transformations.
+\vspace{0.5em}
 
+\vspace{0.5em} \noindent \emph{Example 2.} Similar techniques can be applied to non-numerical data if an appropriate featurization is used.
+One approach is to borrow recent results from Natural Language Processing using Neural Networks to first embed the records in a vector-space and then apply numerical outlier detection techniques. The \textsf{word2vec} model \cite{mikolov2013distributed} is one such approach.
+Using large amounts of unannotated plain text, \textsf{word2vec} learns relationships between words automatically with a Neural Network that predicts the occurrence of nearby words.
+ Each word is assigned a vector in the vector space such that words that share common contexts (i.e., occur in the same document) in the corpus are located in close proximity to one another in the space.
+ This vector space captures semantic relationships between words.
+ 
+ We can adapt \textsf{word2vec} for featurizing records in a relation. Each record is treated as a document and each attribute is treated as word.
+ The model is then trained using all of the records in the training dataset.
+ Thus, for each attribute value we have a vector.
+ To featurize a record, we concatenate these vectors together.
+ Therefore, for each record $r$ there is an associated vector $r_v$.
+  Like the NLP application, this vector space captures semantic relationships between records.
+  We can define the same anomaly detection objective as above over these features.
+  
+\subsection{Programming-by-Demonstration}
+Finally, \sys is very related to systems that apply programming-by-demonstration (PbD) approach to data preparation problems.
+This approach was most notably proposed in the Data Wrangler project, where a human provided initial examples of how to transform a set of semi-structured tuples into a structured schema~\cite{wrangler,trifacta}.
+The system performed a search to find a sequence of transformations to best reproduce the humans demonstration.
+Recently, this basic approach has been extended in the Foofah system~\cite{jin2017foofah}.
 
+Such approaches are clearly linked to \sys. The quality function is a score on each record on how accurately it matches a manually cleaned gold-standard. \sys can additionally couple automated and PbD approaches. 
+Consider the example table as before (where managers can't earn less than employees), but this time  a human provides an example repair: 
 
-
-
-
+\begin{table}[ht!]
+\centering
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor[HTML]{000000} 
+{\color[HTML]{FFFFFF} id}  & {\color[HTML]{FFFFFF} employee\_type}            & {\color[HTML]{FFFFFF} salary}   \\ \hline
+1 & Manager                                & 70000                                  \\ \hline
+2 & Manager                                    & 50000 $\rightarrow$ 70000                                \\ \hline
+3 & Employee                                    & 65000                                  \\ \hline
+4 & Employee                                & 40000                                  \\ \hline
+\end{tabular}
+\end{table}
+The quality function measures the degree to which the table matches the human examples after applying the data transformations.
 
 
 

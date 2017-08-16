@@ -38,6 +38,7 @@
 \usepackage[nospace]{cite}
 \usepackage{csquotes}
 \usepackage{enumitem}
+\usepackage{times}
 
 \usepackage{courier}
 
@@ -159,11 +160,11 @@
 
 %\input{coverletter.tex}
 
-\title{\sys: Quality-Driven Program Synthesis for Data Cleaning}
+\title{\sys: Distributed Sequential Search for Data Cleaning}
 
 
 \numberofauthors{1}
-\author{ Sanjay Krishnan$\,^{*}$, Michael J. Franklin$\,^{*\dag}$, Ken Goldberg$\,^{*}$, Eugene Wu{$\,^{\dag\dag}$},  \\
+\author{ Sanjay Krishnan$\,^{*}$, Eugene Wu{$\,^{\dag\dag}$}, Michael J. Franklin$\,^{*\dag}$, Ken Goldberg$\,^{*}$,  \\
 \affaddr{ $^*$UC Berkeley, ~~ $^\dag$University of Chicago, ~~ $^{\dag\dag}$Columbia University} \\
 \affaddr{ \{sanjaykrishnan, franklin, goldberg\}@berkeley.edu ~~ ewu@cs.columbia.edu}\\
 \affaddr{}
@@ -177,11 +178,11 @@
 
 \begin{abstract}
 Data cleaning is widely reported to be one of the most human-intensive steps in the analysis process.
-This paper presents a general purpose data cleaning system based on quality-based search over a language of possible data transformation.
-AlphaClean is given a specification of quality (e.g., integrity constraints or a statistical model the data must
-conform to) and a language of allowed data transformations, and it searches to find a sequence of transformations that best satisfices the quality
-specification. While the search problem is exponential in the support of the language, we apply a number of novel optimizations including: 
-\textbf{SK. TODO Write}
+We explore whether we can reduce this burden by automatically searching through data transformation rules that maximize a user-defined quality metric.
+We cast data cleaning as a \emph{sequential search} problem, and design an algorithm inspired by recent results in AI research where general-purpose search algorithms can be scaled to very complex problems with massive parallelization and adaptively learning pruning criteria.
+This search-based model increases the generality of the framework (supporting user-defined transformations and mixing data cleaning models) at the cost of additional computation.
+Our results illustrate a number of cases where tradeoff is beneficial and how instance-specific performance can be improved with pruning rules.
+
 \end{abstract}
 
 
@@ -192,9 +193,10 @@ specification. While the search problem is exponential in the support of the lan
 \input{background.tex}
 \input{architecture.tex}
 %\input{statement.tex}
-\input{library.tex}
+%\input{library.tex}
 \input{synth.tex}
-\input{compiler.tex}
+\input{learning.tex}
+\input{experiments.tex}
 %\input{detector.tex}
 %\input{architecture.tex}
 
@@ -219,11 +221,9 @@ specification. While the search problem is exponential in the support of the lan
 
 %\bibliographystyle{abbrv}
 %\scriptsize
-\fontsize{8.8pt}{9.9pt} \selectfont
+%\fontsize{8.8pt}{9.9pt} \selectfont
 \bibliographystyle{abbrv}
 \bibliography{ref} 
 \normalsize \selectfont
-\appendix
-\input{appendix.tex}
 
 \end{document}

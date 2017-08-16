@@ -1,0 +1,12 @@
+\subsection{Machine Learning for Pruning}
+The search algorithms in  most automatic data cleaning frameworks are carefully tuned for a specific quality function or class of quality functions. For example, the chase used in functional dependency resolution does not make an edit to the table unless it enforces at least one tuple's FD relationship. Exploiting the structure of the specific problems allows for a tractable solution technique. Similarly, in entity matching problems, one restricts the search to only matching tuples that are likely to be similar based on some similarity metric.
+These are not static optimizations, i.e., knowing how to prune the search space requires knowing the underlying data.
+Instead, we take a different approach, where these pruning rules are learned through experience.
+As more data are cleaned, the system can build a model of which transformations are more likely to succeed.
+
+\sys executes the search on each block of data.
+The result is a sequence of transformations to optimize the quality metric on that block.
+Every transformation in this sequence can be treated as a positive training example $L^+$, and every transformation not in this sequence can be treated as a negative example $L^-$.
+The idea is that if we apply the search to a sufficient number of blocks then we can train a classifier to predict whether a transformation will be included in the final sequence.
+It is important to note that this prediction is over the transformations and not the data. 
+

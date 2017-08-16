@@ -1,66 +1,45 @@
 \section{Introduction}\label{intro}\sloppy
 Almost every industry has access to significantly more data than would have been imaginable even a decade ago.
-The role of a data scientist to sift through these large datasets, extract meaningful insights, build statistical models, and ultimately, design new  intelligent services. 
+The role of a data scientist to sift through these large datasets, extract meaningful insights, and build statistical models.
 While these new datasets are prolific, they are also susceptible to various forms of data error including incompleteness, inconsistent representations, and corrupted data.
-Consequently, every new project will involve some amount of data cleaning and data integration before data analysis can begin.
+Before analysis can begin, the data must be transformed, or cleaned, to ensure these corruptions do not affect the results or cause the analysis program to fail.
 
-Data cleaning is a significant use case for recent cohort of distributed data processing frameworks such as Hadoop, Spark, Tupleware, and Myria.
-While these frameworks reduce the computational burden of cleaning and preparing data at scale, the human cost of actually writing data cleaning programs can still be extensive.
-Data cleaning is widely reported to be one of the most effort-intensive steps in the analysis process. 
-The data scientist often has to first run a preliminary analysis to identify obvious issues, e.g., through aggregate statistics or visualization, and then write code that repairs or remove erroneous tuples.
-Once an initial cleaning program is written, it is often the case that the process is iterative, where the analyst eventually notices corner cases that the code misses and refines the program. 
-Data cleaning scripts quickly grow in size and their ad-hoc development makes them brittle and hard to maintain~\cite{krishnan2016hilda}.
+In their most basic form, data cleaning programs are collection of transformation rules, each of which is a predicate on the database and a transformation that applies to tuples satisfying the predicate.
+For example, a data scientist might write a rule that maps every record with an \textsf{country} attribute ``United States'' to ``United States of America''.
+These collections of rules quickly grow in size, and if they are developed in an ad-hoc way, they can be brittle and hard to maintain~\cite{krishnan2016hilda}.
+Overly specific rules may not apply to future data, and overly general rules, might introduce unwanted side-effects.
+Designing accurate transformation rules is a painstaking process, which is widely reported to be one of the most effort-intensive steps in data science.
 
-Classically, data cleaning is formalized through integrity constraints satisfaction. The data scientist models her data with a formal language of logical constraints (e.g., functional dependencies, denial constraints, inclusion dependencies). If the database violates one of the constraints, an algorithm finds minimal updates to the database to enforce constraint satisfaction.
-More generally, we can consider integrity constraints as a special case of a two-step process: a method to specify a high-level data model, a search over an allowed set of modifications to the database to best match the specified model.
-We can consider an optimizing search over a formal language of transformations (i.e., allowed data cleaning operations and how they can compose) to find a sequence of transformations that optimizes a quality function (i.e., a function that scores every database instance).
-This generalized perspective allows us to consider many different data cleaning and preparation steps in a similar formalism.
-Different languages of transformations and different quality functions, we can get different data cleaning properties with a single underlying search algorithm.
-This paper explores designing a data cleaning framework built around the formalism of a quality maximizing search over a language of transformations.
+We explore to what extent such collections of transformation rules can be automatically generated.
+In the example above, suppose the data scientist provides us with a dictionary of allowed country names, is it possible to automatically generate the mappings to entities in the dictionary?
+More generally, what if the only supervision available was the accuracy of a downstream predictive model trained on the data--could an algorithm automatically find mappings that optimize the predictive model's accuracy?
+This paper considers the design of a single data cleaning system that can express both forms of data scientist supervision.
+The key insight is that both of these examples can be expressed as a single meta-algorithm:  a search over a formal language of transformations (i.e., allowed data cleaning operations and how they can compose) to find a sequence of transformations that optimizes a user-specified quality function (i.e., a function that scores the ``cleanliness'' of a database).
+Different levels of supervision, from precise dictionaries of allowed values to weak signals from statistical models, can be represented with different quality functions.
 
-\begin{figure}
-\includegraphics[width=\columnwidth]{figures/intro.png}
-\caption{AlphaClean  is  given  a  specification  of  quality(e.g.,  integrity  constraints  or  a  statistical  model  the  data must conform to) and a language of allowed data transformations,  and it searches to find a sequence of transformations that best optimizes the quality specification.  }
-\end{figure}
+This formalism casts data cleaning as a \emph{sequential search} problem; analogous to the algorithms used AI, Robotic Planning, and Control.
+Similar to the way one plans out a sequence of chess moves in AI to gain a strategic board position, we can think of data cleaning as planning out a sequence of data transformations to maximize the score on a quality function.
+And as in chess, where one cannot perfectly anticipate the opposing player's moves, in data cleaning we may not have a strong \emph{a priori} model of how a user-defined transformation rule modifies the data.
+This sort of an approach is increasingly attractive because recent results in AI demonstrate scaling these search problems to  high branching-factor domains even when few assumptions are made about the structure of the problem.
+Recent algorithms have been shown to match or exceed human performance in domains such as Go~\cite{silver2016mastering} and in Atari video games~\cite{mnih2015human}.
+As in many classical data cleaning problems, an optimal solution to AI search problems is very hard to discover, but pragmatically leverage distributed computing and pruning rules learned from data.
 
-For example, one can represent cleaning with integrity constraints in this framework.
-Consider a functional dependency relationship between zipcode and state $\textsf{Zip} \rightarrow \textsf{State}$. The quality function could be the number of tuples that satisfy the functional dependency.
-The language of transformations is the set of functions that updates particular key pair $(z,s) \mapsto (z',s')$.
-The search problem is to find a minimal sequence of such maps that optimizes the quality function.
-The same framework can also handle numerical outliers.
-Suppose, we have an anomaly detector that detects statistical outliers found in an aggregate view of the data.
-We want to be able to find a filter on the base data that removes 
-the outliers from the view.
-The search problem is to find a minimal number of deletes that maximally removes outliers from the view.
+This formulation is admittedly very general, but the potential is a single meta-algorithm that can apply broadly across many different data cleaning and preparation problems, which can greatly reduce the complexity in the design of data cleaning systems.
+The search model also has several other desirable properties. First, rather than returning a cleaned database instance the search returns a sequence of transformations to apply to the dataset. 
+These transformations can be applied to unseen data without re-running the search. 
+Furthermore, it restricts all modifications to the dataset to the allowed transformation language allowing for improved intepretability and post-hoc debugging.
+Next, the search model supports black-box user-defined transformation and quality functions. 
+For example, a company could have \textsf{employee\_id} attributes in very specific formats and needs rules that can interpret those formats.
+Finally, the search model allows for mixing data cleaning abstractions such as quantitative data cleaning and integrity constraints in the same framework.
+The price we pay for this generality is runtime, but our results suggest that a combination of exploiting the inherent parallelism in the search process and pruning rules for important special cases, can make the search time acceptable.
 
-This generality comes at the cost of the search time, and in general, this search problem is very difficult.
-An efficient solution to this search problem would imply an efficient solution to all MAX-SAT instances.
-Pragmatically, the system has to include optimizations that exploit the structure of typical data cleaning problems.
-We specify these optimizations as pruning rules on the language of transformations.
-These pruning rules can also be dynamic analyzing the quality functions and the data.
-In fact, these pruning rules can also be learned where data can be cleaned in blocks or samples and operations that were unsuccessful in the past can be filtered.
-This approach is inspired by similar approaches in AI, such as AlphaGo, which leverage learned scoring and pruning rules.
-These optimizations can make this expensive search process more practical.
-
-This approach has an additional benefit of applying to future unseen data.
-By synthesizing a sequence of transformations, we are actually finding a program and not just a clean database instance.
-This raises an important question not typically studied in the classical data integrity literature, namely, \emph{generalization}, where rules and transformations have to apply to future, unseen data.
-Generalization in data cleaning is akin to generalization in machine learning, where simpler rules are likely to generalize and complex rules can overfit to the current database instance.
-Implementing a form of ``regularization'' in this framework is straight-forward -- one simply has to restrict the language to less selective rules.
-
-
-
-\subsection*{\sys}
-We present \sys, a Python library that synthesizes data cleaning programs with search over a language of transformations.  
-\sys is given a specification of quality (e.g., integrity constraints or a statistical model the data must conform to) and a language  of  allowed  data  transformations,  and  it  searches  to find a sequence of transformations that maximizes a quality metric derived from the specification.  
-
-This paper presents several contributions:
-\begin{enumerate}
-\item We cast data cleaning as a search problem over a formal language of transformations to find a sequence of transformations that maximizes a quality metric, and present a system that implements this formalism with an API to specify pruning rules.
-\item We describe how the search algorithm, which is a greedy best first search, can be parallelized, distributed, and can cache repeated computations.
-\item We describe how pruning rules can be learned from previously cleaned data to improve performance.
-\item The discovered  sequence of  transformations  defines  an  intermediate  representation,which can be easily transferred between languages or optimized with a compiler. We show how vectorization and loop fusion can be used to dramatically speed up the execution time of the data cleaning program.
-\end{enumerate}
+We use this model as a starting point for search-based data cleaning system called \sys.
+We designed an API that takes classical data cleaning problem specifications, such as integrity constraints, gold-standard manually cleaned data, and statistical models, and translates those specifications into quality-maximizing search problems. 
+The system is amenable to special-case optimizations that prune unproductive search branches to make the runtime more competitive with special case systems.
+Pruning rules are specified as regular expressions over the formal language of transformations and can be static (i.e., fixed before execution) and dynamic (i.e., inferred from properties of the dirty database intance).
+The search algorithm we use is a memory-bounded best-first search which maintains the subset of the search frontier that can fit in memory. 
+This algorithm can be parallelized, distributed, and can cache repeated computations.
+Finally, we show that even stronger pruning rules can be learned from the data.
 
 
 

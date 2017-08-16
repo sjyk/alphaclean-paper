@@ -28,24 +28,7 @@ The dataset contains a significant number of missing values and ``sentinel'' rec
 \end{lstlisting}
 
 
-\vspace{0.5em}\noindent\textbf{EEG: } This is a dataset of EEG recordings. 
-The training data is organized into ten minute EEG clips labeled "Preictal" for pre-seizure data segments, or "Interictal" for non-seizure data segments. 
-There are 2406 records each of which is a variable-length time-series of 16 attributes. We featurize this dataset into records of 32 attributes--the mean and variance over the length of the time-series. 
-This dataset primarily contains numerical outliers, the clips have spurious readings.
-\begin{lstlisting}
-#Time t=46 Normal
-[-41.53080368041992, -9.605541229248047, 
--55.74542999267578, 17.77084732055664,
--1.6866581439971924, 38.86453628540039, 
-17.108707427978516, 26.545927047729492, 
--12.696817398071289, -12.703478813171387, 
-56.78707504272461, 3.2556533813476562, 
-22.688213348388672, -25.728403091430664, 
--10.142332077026367, -11.585281372070312]
 
-#Time t=47 Abnormal
-(*\orange{[0, 8, -10, 9, 18, 6, -8, -41, -26, -72, -19, 70, 129, 53, 31, -11]}*)
-\end{lstlisting}
 
 \vspace{0.5em}\noindent\textbf{Sensor: } The Intel sensor dataset contains 928,991 temperature, humidity, and light sensor readings a sensor deployment. The classification task is to predict whether the readings came from a particular sensor (sensor 49). This dataset primarily has numerical outliers.
 \begin{lstlisting}

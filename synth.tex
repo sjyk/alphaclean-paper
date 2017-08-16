@@ -1,5 +1,5 @@
-\section{Synthesis Algorithm}
-In this section, we describe the synthesis algorithm.
+\section{Search Algorithm}
+In this section, we describe the search algorithm.
 
 \begin{algorithm}[t]
 \KwData{Q, R, L, (k, $\gamma$)}
@@ -28,7 +28,7 @@ Initialize $O$ as a priority queue with a singleton NOOP transformation\\
 \end{algorithm}
 
 
-\subsection{Greedy Best-First Tree Search}
+\subsection{Basic Algorithm}
 A best-first search expands the most promising nodes chosen according to a specified cost function.
 We consider a greedy version of this algorithm, which removes nodes on the frontier that are more than $\gamma$ times worse than the current best solution.
 Making $\gamma$ larger makes the algorithm asympotically consistent, whereas $\gamma=1$ is a pure greedy search.
@@ -41,23 +41,45 @@ Then, it places the new composed transformation onto the priority queue with its
 The algorithm then flushes the priority queue of all elements with priority more than $\gamma$ times worse than the current best solution.
 This process repeats until all elements on the queue have a description length of $k$.
 
-There are several basic optimizations that we can apply to make this algorithm more efficient.
+\subsubsection{Materialization}
+Each node in this tree $o$ represents a sequence of transformations.
+Evaluating the value of $o$ is often the most expensive step in the search.
+$o$ is a composition of many transformations and may require a number of passes over the dataset.
+This can be avoided if we can materialize (either to disk or memory) the frontier,that is, for each node in the priority queue $o \in O$, we have a cached result of $o(R)$. 
+Then, when we expand the nodes to $o' = o \circ t$, we only have to incrementally evaluate $t(R)$.
+After the node is expanded, the result is added to the cache if it within $\gamma$ of the best solution.
+The basic algorithm described above is well-suited for this problem.
+Without the greediness, the frontier might be exponentially large leading to an impractical amount of materialization.
+By tuning $\gamma$, the user can essentially set how much memory is used for materialization.
 
-\vspace{0.25em}\noindent\textbf{Materialization: } The most expensive step in the search is the evaluation of the cost function as this requires executing $o'$ over the whole relation $R$. $o'$ is a composition of many transformations and may require a number of passes over the dataset.
-This can be avoided if we can materialize (either to disk or memory) the frontier, i.e., all of the elements in $O$.
-In general, the frontier might be exponentially large, but that is why we have a flushing procedure that limits the size with the hyper-parameter $\gamma$.
+\subsection{Parallelism}
+The basic search algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Each expansion can be forked into its own thread. However, this actually makes the materialization described above a bit more challenging. 
 
-\vspace{0.25em}\noindent\textbf{Parallelism: } The algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Synchronization can happen after all of the expanded nodes are evaluated.
-The one caveat if the platform on which \sys is running does not support a shared memory or shared disk, we have to be careful about how we materialize the intermediate results as they many not be collocated with the workers expanding the particular frontier node.
+\subsubsection{Shared Memory Parallelization}
+The most straight-forward case is when we have access to low-latency shared memory between the expansion threads. In each expansion round, the main thread will assign each expansion node to workers and they will evaluate a given transformation. Each worker will make a copy of $o(R)$ (the node it is expanding) into shared memory. 
+If the expanded transformation is within $\gamma$ of the best current result, then it will update the copy, otherwise delete it. The point of synchronization is after all expansions are finished, and the main driver will flush all transformations less than $\gamma$ of the best result, and then assign new workers for the next round. 
 
-\subsection{Machine Learning for Pruning}
+\subsubsection{Distributed Parallelization}
+In cases, where we do not have access to low-latency shared memory, the communication costs of the above algorithm can be impractical. For each expanded node, the entire table has to be communicated to each of the distributed nodes.
+We consider a worker-driver model, and assume that the number of workers is $k$.
 
-\begin{enumerate}
-    \item The output of the search is a sequence of operations parametrized by literal values for each block of data.
-    \item This can be treated as training data. For each operation, we know which literal values were selected and which were excluded. 
-    \item Train a classifier to predict this.
-    \item Greatly speeds up search on future blocks.
-    \item Canned set of features used.
-    
-\end{enumerate}
+\vspace{0.25em} \noindent  \textbf{Initialization. } 
+Each worker has a copy of the base relation with no transformations.
+In the first round of expansion, the driver assigns to each worker $\frac{|L|}{k}$ expansions. 
+Each worker executes each of its assigned expansions, and stores the transformations that are within $\gamma$ of the best local result.
+
+\vspace{0.25em} \noindent  \textbf{Reconciliation. }  Note that the global top-$\gamma$ set is a subset of the union of the all local results.
+The workers then communicate the quality of their best transformation. This can be used to reconcile the local materializations to only the global top-$\gamma$ set.
+This set is not necessarily balanced, e.g., one worker might have almost all of the top transformations.
+The next step is a balancing step, where each worker communicates the number of materialized expansions it currently stores.
+The workers with more than $\frac{|O|}{k}$ materialized expansions  randomly select ones to evict, and the driver re-distributes these to nodes with too few materialized expansions.
+This is done by communicated the transformation and the result is re-computed on the new worker.
+If $|O| < k$, then expansions are chosen at random to be replicated.
+The result of the reconciliation step is that all workers have an evenly distributed set of materialized expansions.
+
+\vspace{0.25em} \noindent  \textbf{Next Round. } After reconciliation, each worker is associated with a particular $o \in O$ (or a set of them). To parallelize, the driver must simply ensure that it assigns new expansions only to those workers that have materialized the parent.
+The algorithm then repeats, expanding each node locally, and then reconciles the results.
+
+
+
 

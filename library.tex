@@ -1,43 +1,4 @@
-\section{Specification Layer}
-This layer translates a formal data model into a data cleaning specification.
-
-\subsection{Synthesizing Quality Functions}
-First, we describe how we translate existing data cleaning model into quality functions for use in \sys.
-
-\subsubsection{Constraint-Based Data Cleaning}
-
-\subsubsection{Model-Based Data Cleaning}
-
-\subsubsection{Programming By Demonstrations}
 
 
-\subsection{Library Generation}
-Given a relation $R$, we populate the library with feasible literal values.
 
-\subsubsection{Transformation API}
-Data transformations are specified in terms of templates that can take different types of literal parameters.
-
-\begin{enumerate}
-    \item Value
-    \item Column
-    \item Predicate
-    \item Substring
-\end{enumerate}
-
-We provide a large set of these templates but users can write their own too.
-
-
-\begin{enumerate}
-    \item Library gets large
-    \item Hints from quality functions about columns and predicates
-    \item Note how these optimizations are similar to those in Scorpion.
-\end{enumerate}
-
-\subsection{Blocking}
-Another approach to reduce the library size is to partition the relation into smaller logical blocks.
-
-\begin{enumerate}
-    \item Can sometimes be inferred from quality function.
-    \item Similar to what is done in entity resolution.
-\end{enumerate}
 
