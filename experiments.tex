@@ -3,12 +3,16 @@
 
 \textbf{SK. TODO Describe the hypothesis and what we want to show}
 
+\ewu{TODO: we need a micro experiment where we fix alpha clean and vary the data characteristics and the language to show how it works.}
+
 \subsection*{Exp 1. Machine Learning}
 \textbf{SK. Point of the experiment: expressive quality fn, simple cleaning fns}
 In many machine learning settings, cleanly labeled test data is often available (e.g., the results of following a sales lead). 
 Labels often represent directly observed phenomena making them relatively clean, while features are often weaker signals integrated from multiple disparate sources and subject to error and frequent change.
 This allows us to define a quality function in terms of the model's predictive accuracy--the data cleaning being a means to improving that predictive accuracy.
 In this sense, our goal is not to fully clean each record and recover a logically consistent relation (as in classical data cleaning); instead, to utilize the available cleaning resources to best improve a model trained on this dataset. In this experiment, we consider handling numerical outliers in ML datasets.
+\ewu{Describe what constitutes a good cleaning dataset, so that our choices are justified}
+\ewu{Run on Ray with 10 or 20 threads. Whatever to beat the current fastest (MCD)}
 
 \subsubsection{Setup}
 We considered the following datasets:
@@ -101,6 +105,7 @@ EEG	&2406&32&-&\pop{57.52}&236.11&437.10\\
 \end{table}
 
 
+\ewu{Other than the fact that AC is good, did we learn anything else?  Do we want to vary the number of columns in the datasets?  }
 
 \subsection*{Exp 2. Integrity Constraints}
 \textbf{SK. Point of the experiment: runs on classical data cleaning problems}
@@ -147,6 +152,8 @@ Physican	&TODO&TODO&TODO&TODO&TODO\\
 \end{table}
 
 
+\ewu{Can we show that using an IC dataset, but used for ML, it doesn't require much effort and it will choose different cells to clean? In effect, can we argue that cleaning is application specific?}
+
 
 \subsection*{Exp 3. Statistical Data Cleaning}
 
@@ -165,7 +172,11 @@ Stock	&1014867&4& 0.96&	0.81&	6417s\\
 \end{table}
 
 
+
 \subsection*{Exp 4. Learning}
+
+\ewu{Merge this with Exp 5 and call it optimizations}
+
 \textbf{Sk. data is cleaned in blocks, as more blocks are cleaned search becomes faster as you can prune more. This shows the stock dataset.}
 
  \begin{figure}[ht]
@@ -196,3 +207,5 @@ No Cores.   & No Cache & Cache Only & All Optimizations \\
 \hline
 \end{tabular}
 \end{table}
+
+\ewu{These results are so gangster.  can you show for FEC?  That has the most embarrassing runtime}
