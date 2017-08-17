@@ -160,7 +160,7 @@
 
 %\input{coverletter.tex}
 
-\title{\sys: Distributed Sequential Search for Data Cleaning}
+\title{\sys: Parallelized Sequential Search for Data Cleaning}
 
 
 \numberofauthors{1}
@@ -178,11 +178,15 @@
 
 \begin{abstract}
 Data cleaning is widely reported to be one of the most human-intensive steps in the analysis process.
-We explore whether we can reduce this burden by automatically searching through data transformation rules that maximize a user-defined quality metric.
+We explore whether we can reduce this burden by automatically searching through data transformation rules that maximize a user-defined data quality metric.
 We cast data cleaning as a \emph{sequential search} problem, and design an algorithm inspired by recent results in AI research where general-purpose search algorithms can be scaled to very complex problems with massive parallelization and adaptively learning pruning criteria.
 This search-based model increases the generality of the framework (supporting user-defined transformations and mixing data cleaning models) at the cost of additional computation.
 Our results illustrate a number of cases where tradeoff is beneficial and how instance-specific performance can be improved with pruning rules.
-
+First, we illustrate how \sys can be used to search for data transformation rules that improve the accuracy of predictive models (5\% prediction accuracy improvement on the US Census Dataset) and a (4\% on an EEG dataset).
+Second, we apply \sys to integrity constraint-based data cleaning problems.
+We find that \sys achieves state-of-the-art accuracy on a dataset of Flight arrival times, and also scales to a larger and more complex datasets.
+Next, we show how \sys can clean records scored as anomalies from a statistical model on a dataset of stock open and close values achieving a 0.96 precision and 0.81 recall.
+Finally, we show that \sys that the systems optimizations can reduce search time by up-to 11x, and the optimized version has a speedup of 7x on a 64 core machine.
 \end{abstract}
 
 
