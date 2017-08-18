@@ -1,5 +1,5 @@
 \section{Search Algorithm}
-In this section, we describe the search algorithm.
+The search algorithm takes a quality function, a language, and a dirty relation, and outputs a sequence of transformations (of max depth $k$) that maximizes the quality function.
 
 \begin{algorithm}[t]
 \KwData{Q, R, L, (k, $\gamma$)}
@@ -27,6 +27,20 @@ Initialize $O$ as a priority queue with a singleton NOOP transformation\\
 \label{alg:main}
 \end{algorithm}
 
+\subsection{Motivation}
+In principle, any tree search algorithm can apply over the data cleaning DFA and would be correct.
+However, the traversal order and expansion policy is important in this search problem and can lead to highly suboptimal performance.
+
+Let us first start with a breadth-first search (BFS). At each round one would expand every node on the frontier by composing it with another transformation in the library.
+The first problem with this algorithm is that since each node in this tree $o$ represents a sequence of transformations.
+Evaluating the value of $o$ can be very expensive since it would have to evaluate the entire path to the root.
+$o$ is a composition of many transformations and may require a number of passes over the dataset.
+This can be avoided if we can materialize (either to disk or memory) the frontier,that is, for each node in the priority queue $o \in O$, we have a cached result of $o(R)$. 
+However, with BFS, the frontier is expoential in the support of the language and the system would quickly run out of memory.
+
+An algorithm with slightly better system properties would be a depth-first search (DFS).
+Cache would only have to maintain the preceding $k-1$ nodes on the path to the root.
+However, DFS will waste time on highly improbable sequences of transformations.
 
 \subsection{Basic Algorithm}
 A best-first search expands the most promising nodes chosen according to a specified cost function.
@@ -41,19 +55,22 @@ Then, it places the new composed transformation onto the priority queue with its
 The algorithm then flushes the priority queue of all elements with priority more than $\gamma$ times worse than the current best solution.
 This process repeats until all elements on the queue have a description length of $k$.
 
-\subsubsection{Materialization}
-Each node in this tree $o$ represents a sequence of transformations.
-Evaluating the value of $o$ is often the most expensive step in the search.
-$o$ is a composition of many transformations and may require a number of passes over the dataset.
-This can be avoided if we can materialize (either to disk or memory) the frontier,that is, for each node in the priority queue $o \in O$, we have a cached result of $o(R)$. 
+We can materialize (either to disk or memory) the frontier,that is, for each node in the priority queue $o \in O$, we have a cached result of $o(R)$. 
 Then, when we expand the nodes to $o' = o \circ t$, we only have to incrementally evaluate $t(R)$.
 After the node is expanded, the result is added to the cache if it within $\gamma$ of the best solution.
 The basic algorithm described above is well-suited for this problem.
 Without the greediness, the frontier might be exponentially large leading to an impractical amount of materialization.
 By tuning $\gamma$, the user can essentially set how much memory is used for materialization.
 
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/distributed.png}
+    \caption{TODO}
+    \label{fig:my_label}
+\end{figure*}
+
 \subsection{Parallelism}
-The basic search algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Each expansion can be forked into its own thread. However, this actually makes the materialization described above a bit more challenging. 
+The best-first search algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Each expansion can be forked into its own thread. However, this actually makes the materialization described above a bit more challenging. 
 
 \subsubsection{Shared Memory Parallelization}
 The most straight-forward case is when we have access to low-latency shared memory between the expansion threads. In each expansion round, the main thread will assign each expansion node to workers and they will evaluate a given transformation. Each worker will make a copy of $o(R)$ (the node it is expanding) into shared memory. 

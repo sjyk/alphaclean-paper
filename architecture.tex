@@ -1,54 +1,47 @@
 \section{Architecture and API}
 Now, we will overview some of the preliminary concepts and describe how this formalism inspires a modular system API.
+\sys is designed as a software stack with three layers: a specification layer, a search layer, and an execution layer.
+To understand how these layers interact, we will use the example in Section 2 throughout this section.
 
+\iffalse
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
  \includegraphics[width=\columnwidth]{figures/alphacleanarch.png}
  \caption{ \sys is given a specification of quality (e.g., integrity constraints or a statistical model the data must conform to) and a language  of  allowed  data  transformations,  and  it  searches  to find a sequence of transformations that maximizes the quality metric. \label{fig:arch} }
 \end{figure}
+\fi
 
+\subsection{Specification Layer} The provides an API for specifying a quality function and a language of transformations. This allows one to specify a data cleaning problem for a particular dirty instance. As described in the previous section, we provide an API for translating common data cleaning specifications, constraints, statistical models, and gold standard examples, into quality functions. 
 
-\subsection{Overview}
-\sys is designed as a software stack with three layers: a specification layer, a search layer, and an execution layer.
-To understand how these layers interact, let us reconsider the example in Section 2.
-\begin{table}[ht!]
-\centering
-\label{my-label}
-\begin{tabular}{|l|l|l|}
-\hline
-\rowcolor[HTML]{000000} 
-& {\color[HTML]{FFFFFF} city\_name}            & {\color[HTML]{FFFFFF} city\_code}   \\ \hline
-1 & San Francisco                                & SF                                  \\ \hline
-2& {\color[HTML]{FE0000} \textbf{New York}}     & NY                                  \\ \hline
-3 & New York City                                & {\color[HTML]{FE0000} \textbf{NYC}} \\ \hline
-4 & {\color[HTML]{FE0000} \textbf{San Francisc}} & SF                                  \\ \hline
-5 & San Jose                                     & SJ                                  \\ \hline
-6 & San Mateo                                    & SM                                  \\ \hline
-7 & New York City                                & NY                                  \\ \hline
-\end{tabular}
-\end{table}
-
-
-\subsubsection{Specification Layer} The provides an API for specifying a quality function and a language of transformations. The language is generated through a transformation templates which are dynamically populated by literals in the database.
+The harder problem is specifying the language. 
+The challenge is that most data transformations are parametrized by literal values from the database.
+We need efficient techniques to automatically enumerate this transformation set before we apply the search.
+The language is generated through a transformation templates which are dynamically populated by literals in the database.
 A template is a parametrized transformation:
 \[T(R, [\theta_1, \theta_2,...,\theta_k] ): \mathcal{R} \mapsto  \mathcal{R},\] where the parameters $[\theta_i]$ are populated by literal values.
-The users annotates the the type of the parameter (attribute, value, predicate, token), and the system dynamically generates all possible literal instances of this transformation.
+Each $\theta_i$ represents an SQL query except for special parameters such as attribute names and data-independent hyperparameters.
+The system dynamically generates all possible literal instances of this transformation by taking the cartesian product of the query results.
+
 In the running example, consider the following function:
 \[
 \textsf{find\_replace}(\text{source}, \text{target}, \text{attribute})
 \]
-
-Additionally, \sys can apply machine learning techniques to prune search branches.
-To do this, all the transformations in the language have to be featurized to a $d$ dimensional vector:
+\begin{lstlisting}
+source := SELECT attribute from R;
+target := SELECT attribute from R;
+\end{lstlisting}
+Likewise for numerical transformations, consider the function that clips outlier values outside 6 standard deviations of the mean:
 \[
-\textsf{feat}(T) \mapsto \mathbb{R}^d
+\textsf{clip}(\text{mean}, \text{threshold})
 \]
-\sys trains a classifier that maps the d-dimensional vector to $0$ (keep) or $1$ (prune).
-This allows the search to execute much faster on future data (or future blocks).
-The specification layer provides some default featurization schemes which can be customized.
+\begin{lstlisting}
+mean := SELECT mean(attribute) from R;
+threshold := SELECT 6*std(attribute) from R;
+\end{lstlisting}
+\sys provides queries and filters for a number of common parametrizations or they can be specified manually.
 
-\subsubsection{Search Layer} The next layer is the search layer, which implements the basic search algorithm of \sys. This algorithm is a distributed best-first greedy search.  
+\subsection{Search Layer (Section 5)} The next layer is the search layer, which implements the basic search algorithm of \sys. This algorithm is a distributed best-first greedy search.  
 With no additional information, the search approach described would have to evaluate $61^3 = 226981$ transformations, which is clearly impractical even for this small example.
 This layer also provides an interface for custom search optimizations:
 
@@ -72,18 +65,7 @@ For quality functions generated from dependencies, we can determine blocks analy
 However, in general, these blocking rules can be learned (e.g., with clustering) or user defined.
 The search can execute on each of the blocks independently.
 
-
-\vspace{0.5em}\noindent\textbf{Learned Optimizations: } 
-As an example, consider the sequence of transformations described in the example:
-\begin{lstlisting}
-find_replace(New York, New York City, city_name)
-find_replace(San Francisc, San Francisco, city_name)
-find_replace(NYC, NY, city_code)
-\end{lstlisting}
-One observation is that the source and target strings in the optimal sequence are very close in terms of string similarity (as opposed to arbitrary transformations).
-If each of these operations was featurized with a single scalar that is the edit-distance between the two strings, then the classifier could learn a pruning threshold (i.e., not considering find-and-replace operations above that threshold).
-
-\subsubsection{Execution Layer} Finally, once the sequence of transformations are found with the search, the program is ready to execute. \sys provides an API to optimize the transformation sequence (merging transformations that can be executed in the same iterative loop) and replacing literal values when possible. 
+\subsection{Execution Layer} Finally, once the sequence of transformations are found with the search, the program is ready to execute. \sys provides an API to optimize the transformation sequence (merging transformations that can be executed in the same iterative loop) and replacing literal values when possible. 
 For example, consider these operations:
 \begin{lstlisting}
 find_replace(New York, New York City, city_name)

@@ -96,72 +96,13 @@ The classical model for data cleaning is using integrity constraints.
 The data scientist describes the relationships between attributes in terms of functional dependencies, conditional functional dependencies, denial constraints, and other types of logical constraint constraints.
 Then, if any of these constraints are violated, the system will search over updates to the inconsistent database instance to enforce the constraints.
 Recent example systems include NADEEF~\cite{DBLP:conf/sigmod/DallachiesaEEEIOT13}, LLunatic~\cite{geerts2013llunatic}, Holistic Data Cleaning~\cite{chu2013holistic}, and Big Dansing~\cite{khayyat2015bigdansing}.
-
-While, \sys does not exactly enforce integrity constraints, it can support quality functions grounded in integrity constraints. 
-We construct a quality function that marks every cell that is in violation with a 0 and every cell that is not with a 1.
+As in the running example, we can construct a quality function that marks every cell that is in violation with a 0 and every cell that is not with a 1.
 The allowed language would be replacing any cell with another value in the attribute domain.
-
-\vspace{0.5em} \noindent \emph{Example.} Consider the following table of employee information:
-
-\begin{table}[ht!]
-\centering
-\label{my-label}
-\begin{tabular}{|l|l|l|}
-\hline
-\rowcolor[HTML]{000000} 
-{\color[HTML]{FFFFFF} id}  & {\color[HTML]{FFFFFF} employee\_type}            & {\color[HTML]{FFFFFF} salary}   \\ \hline
-1 & Manager                                & 70000                                  \\ \hline
-2 & {\color[HTML]{FE0000}Manager}                                     & {\color[HTML]{FE0000}50000}                                 \\ \hline
-3 & {\color[HTML]{FE0000}Employee}                                    & {\color[HTML]{FE0000}65000}                                  \\ \hline
-4 & Employee                                & 40000                                  \\ \hline
-\end{tabular}
-\end{table}
-On this relation, we introduce a constraint that no manager can make less money than an employee. The quality function counts the number of cells that do not violate the constraints (2 cells from Manager id 1, 2 cells from Employee id 3, out of 8 total cells $Q(R) = 0.5$).
-
-\vspace{0.5em}
 
 While prior work are roughly speaking equivalent in expressiveness, they each have a different solution algorithm.
 For example, Dallachiesa et al. uses a SAT solver to enforce the constraints~\cite{DBLP:conf/sigmod/DallachiesaEEEIOT13}, Chu et al. uses a iterative algorithm that walks along a hypergraph~\cite{chu2013holistic}, and Geerts et al. is based on a fixed-point iteration~\cite{geerts2013llunatic}.
 Our goal with \sys is to reduce the complexity of such systems, by consolidating to a single general-purpose search algorithm and an API for specifying optimizations specific to particular problem classes.
 This means that the approach is more general and can handle novel combinations of data cleaning operations, e.g., denial constraints and numerical outliers.
-
-\subsection{Beyond Classical Data Cleaning}
-\sys allows us to go beyond operations typically considered in declarative data cleaning systems and search more complex languages of transformations.
-One lesson from the above example is that it synthesizes transformations that have no knowledge of the semantics of the data (i.e., we could hash the entire dataset and still get the same results).
-The issue with such an approach is that an equally ``optimal'' solution could instead be:
-\begin{lstlisting}
-find_replace(San Francisco, San Francisc, city_name)
-\end{lstlisting}
-Problems like this can be avoided with user-defined transformations.
-For example, suppose we had a function that given a column deleted all cells that fail a spell check:
-\begin{lstlisting}
-spellcheck(city_name)
-\end{lstlisting}
-After applying this transformation, the resulting relation is:
-\begin{table}[ht!]
-\centering
-\label{my-label}
-\begin{tabular}{|l|l|l|}
-\hline
-\rowcolor[HTML]{000000} 
-& {\color[HTML]{FFFFFF} city\_name}            & {\color[HTML]{FFFFFF} city\_code}   \\ \hline
-1 & San Francisco                                & SF                                  \\ \hline
-2& {\color[HTML]{FE0000} \textbf{New York}}     & NY                                  \\ \hline
-3 & New York City                                & {\color[HTML]{FE0000} \textbf{NYC}} \\ \hline
-4 & {\color[HTML]{005500} \textbf{None}} & SF                                  \\ \hline
-5 & San Jose                                     & SJ                                  \\ \hline
-6 & San Mateo                                    & SM                                  \\ \hline
-7 & New York City                                & NY                                  \\ \hline
-\end{tabular}
-\end{table}
-After this transformation, there is no ambiguity in the minimal repair:
-\begin{lstlisting}
-spellcheck(city_name)
-find_replace(New York, New York City, city_name)
-find_replace(None, San Francisco, city_name)
-find_replace(NYC, NY, city_code)
-\end{lstlisting}
-If such a function were available (and we knew when to use it), it would greatly improve the reliability of any subsequent automated cleaning.
 
 \subsection{Model-based Systems}
 Another class of systems uses statistical properties to define data errors, which is also called Quantitative Data Cleaning (see survey by Hellerstein~\cite{hellerstein2008quantitative}).
@@ -172,36 +113,16 @@ Example systems include Eracer~\cite{eracer}, SCARED~\cite{yakout2013don}, and d
 
 Such scoring functions naturally fit into the model of \sys.
 A statistical model can define the quality function and the user can chose preferred behavior for abnormal records.
-For example, one can chose to delete or impute with a default value.
-
-\vspace{0.5em} \noindent \emph{Example 1.} Consider the following table of sensor data.
-\begin{table}[ht!]
-\centering
-\label{my-label}
-\begin{tabular}{|l|l|l|}
-\hline
-\rowcolor[HTML]{000000} 
-  & {\color[HTML]{FFFFFF} Temperature}            & {\color[HTML]{FFFFFF} Humidity}   \\ \hline
-1 & 74.5 {\color[HTML]{00FE00}score: 5\%}                                 & 86.1 {\color[HTML]{00FE00}score: 2\%}                                  \\ \hline
-2 & 69.1  {\color[HTML]{00FE00} score: 2\%}                                   & 84.2 {\color[HTML]{00FE00}score: 6\%}                               \\ \hline
-3 & 67.1   {\color[HTML]{00FE00}score: 8\%}                                 & 32.1  {\color[HTML]{FE0000}score: 87\%}                                \\ \hline
-4 & 71.3  {\color[HTML]{00FE00}score: 1\%}                              & 83.1  {\color[HTML]{00FE00}score: 5\%}                                \\ \hline
-\end{tabular}
-\end{table}
-
-Each cell is scored by a an anomaly detector which marks a percentage confidence that the element is an anomaly (e.g., by the distance to the nearest neighbor). The quality function is the average score over the entire table.
+For example, one can chose to delete or impute with a default value. Each cell is scored by a an anomaly detector which marks a percentage confidence that the element is an anomaly (e.g., by the distance to the nearest neighbor). The quality function is the average score over the entire table.
 The search problem is to find a sequence of transformations that reduces the anomaly detection scores.
 
-
-\vspace{0.5em}
-
-\vspace{0.5em} \noindent \emph{Example 2.} Similar techniques can be applied to non-numerical data if an appropriate featurization is used.
+Similar techniques can be applied to non-numerical data if an appropriate featurization is used.
 One approach is to borrow recent results from Natural Language Processing using Neural Networks to first embed the records in a vector-space and then apply numerical outlier detection techniques. The \textsf{word2vec} model \cite{mikolov2013distributed} is one such approach.
 Using large amounts of unannotated plain text, \textsf{word2vec} learns relationships between words automatically with a Neural Network that predicts the occurrence of nearby words.
  Each word is assigned a vector in the vector space such that words that share common contexts (i.e., occur in the same document) in the corpus are located in close proximity to one another in the space.
  This vector space captures semantic relationships between words.
  
- We can adapt \textsf{word2vec} for featurizing records in a relation. Each record is treated as a document and each attribute is treated as word.
+Each record is treated as a document and each attribute is treated as word.
  The model is then trained using all of the records in the training dataset.
  Thus, for each attribute value we have a vector.
  To featurize a record, we concatenate these vectors together.
@@ -216,22 +137,10 @@ The system performed a search to find a sequence of transformations to best repr
 Recently, this basic approach has been extended in the Foofah system~\cite{jin2017foofah}.
 
 Such approaches are clearly linked to \sys. The quality function is a score on each record on how accurately it matches a manually cleaned gold-standard. \sys can additionally couple automated and PbD approaches. 
-Consider the example table as before (where managers can't earn less than employees), but this time  a human provides an example repair: 
-
-\begin{table}[ht!]
-\centering
-\label{my-label}
-\begin{tabular}{|l|l|l|}
-\hline
-\rowcolor[HTML]{000000} 
-{\color[HTML]{FFFFFF} id}  & {\color[HTML]{FFFFFF} employee\_type}            & {\color[HTML]{FFFFFF} salary}   \\ \hline
-1 & Manager                                & 70000                                  \\ \hline
-2 & Manager                                    & 50000 $\rightarrow$ 70000                                \\ \hline
-3 & Employee                                    & 65000                                  \\ \hline
-4 & Employee                                & 40000                                  \\ \hline
-\end{tabular}
-\end{table}
+Consider the example table as before (where managers can't earn less than employees), but this time  a human provides an example repair.
 The quality function measures the degree to which the table matches the human examples after applying the data transformations.
+
+
 
 
 
