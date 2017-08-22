@@ -63,7 +63,7 @@ Physican	&37465&10&1.0&0.84& 11761s\\
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp2.png}
-    \caption{We evaluate \sys on a quantitative data cleaning task by cleaning a dataset prior to training a random forest classifier model. NC denotes no cleaning, MCD denotes using a Minimum Covariance Determinant approach to remove statistical outliers, DO denotes \label{exp1a}}
+    \caption{We evaluate \sys on a quantitative data cleaning task by cleaning a dataset prior to training a random forest classifier model. The system is allowed to clip outliers or set them to a default value. NC denotes no cleaning, MCD denotes using a Minimum Covariance Determinant approach to remove statistical outliers, DO denotes using \sys with only setting defaul values, and AC denotes \sys (+L with learning +L16 with learning and parallelized over 16 threads). (A) plots the accuracy of this classifier and (B) plots the run time. \label{exp2a}}
 \end{figure}
 
 \subsubsection{Quantitative Data Cleaning}
@@ -96,114 +96,23 @@ which sets all values below threshold to threshold.
 \]
 which sets all values in $R[attr]$ equal to value to the mean value.
 
-
-\subsubsection{Baselines}
-
 \vspace{0.5em}\noindent\textbf{Baselines: } For this experiment, we defined a 20\% held-out test dataset. We apply the search on the 80\% of the training data, and apply the discovered transformations before predictions on the 20\% held-out set. 
 We compare to the following baselines: (No Cleaning) there is no modification to the data before prediction, (Minimum Covariance Determinant) we apply a standard outlier detection technique that does not consider the subsequent trained model and sets all detected outliers to the mean value, and (Default Only) we run \sys where the only operation is setting the mean value.
 
+\vspace{0.5em}\noindent\textbf{Results: } Figure \ref{exp2a} plots the results of the experiments. Without cleaning the classifier gets an accuracy of 82\% on the census dataset and 79\% on the EEG dataset. The MCD approach improves the classifer accuracy in the census dataset. This is because the majority of the outliers are very far from the mean, and MCD is an effective approach to identifying them. These outliers correspond to missing values so setting their value to the default mean is a sensible fix.
+In the other dataset, EEG, the default mean fix is not always the best repair for outlier data. 
+We found that clipping the value based on a threshold lead to the best classifier accuracy.
+We came to this conclusion by running \sys with only the default value transformations and observed a similar pattern. 
+By searching through the best transformations, \sys allows us to automatically make this decision.
+The quality function for both datasets is the same but \sys finds very different transformation rules.
 
+Of course, \sys is slower than the alternatives. 
+Without any optimizations, \sys is nearly 10x slower than MCD.
+But with learning, this gap is reduced to a factory of 4.
+Furthermore, if we parallelize on 16 threads, we match the the runtime of MCD.
 
-\begin{table}[ht]
-\footnotesize
-\centering
-\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\hline
-Pred. Accuracy & \#rows & \#cols & NC & MCD & DO & AC \\
-\hline
-US Census	&32561&15&0.82&	0.79&	0.86&	\pop{0.87}\\
-\hline
-EEG	&2406&32&0.79&	0.81&	0.80&	\pop{0.83}\\
-\hline
-\end{tabular}
-\end{table}
-
-\textbf{Sk. TODO it's slow but it works}
-\begin{table}[ht]
-\footnotesize
-\centering
-\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\hline
-Runtime (s) & \#rows & \#cols & NC & MCD & DO & AC \\
-\hline
-US Census	&32561&15&-&\pop{187.12}&545.96&731.59\\
-\hline
-EEG	&2406&32&-&\pop{57.52}&236.11&437.10\\
-\hline
-\end{tabular}
-\end{table}
-
-
-\ewu{Other than the fact that AC is good, did we learn anything else?  Do we want to vary the number of columns in the datasets?  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-\vspace{0.5em}\noindent\textbf{FEC Dataset: }  We can calculate the semantic similarity between two occupations with a \textsf{word2vec} model.
-
-\vspace{0.5em}\noindent\textbf{Baselines: } We compare to running the $N^2$ 
-
-
-
-
-
-
-
-
-
-\textbf{SK. Rough but initial numbers are in there}
-
-\textbf{SK. TODO Describe the hypothesis and what we want to show}
-
-\ewu{TODO: we need a micro experiment where we fix alpha clean and vary the data characteristics and the language to show how it works.}
-
-\subsection*{Exp 1. Machine Learning}
-\textbf{SK. Point of the experiment: expressive quality fn, simple cleaning fns}
-
-
-\subsection*{Exp 2. Integrity Constraints}
-\textbf{SK. Point of the experiment: runs on classical data cleaning problems}
-
-Next, we considered datasets where quality functions are defined in terms of integrity constraints.
-
-
-\subsubsection{Setup}
-We considered the following datasets:
-
-
-
-\vspace{0.5em}\noindent\textbf{Federal Election Commission Contributions: } The FEC provides a dataset of election contributions of 6,410,678 records with 18 numerical, categorical and string valued attributes. This dataset has a number of errors. There are missing values, formatting issues (where records have the wrong number of fields causing misaligment in parsing), and numerical outliers (negative contributions).
-
-\vspace{0.5em}\noindent\textbf{Physician Dataset: }
-
-\vspace{0.5em}\noindent\textbf{Malasakit Dataset: }
-
-
- 
-\subsubsection{Results}
-
-\textbf{SK. TODO write up. Awaiting confirmation from Stanford, but our results for FLIGHT look like state-of-the-art results.}
-
-
-
-
-\ewu{Can we show that using an IC dataset, but used for ML, it doesn't require much effort and it will choose different cells to clean? In effect, can we argue that cleaning is application specific?}
-
-
-\subsection*{Exp 3. Statistical Data Cleaning}
+\subsubsection{Model-based Cleaning}
+Another approach to data cleaning
 
 \textbf{SK.TODO writeup Stock dataset}
 
@@ -218,6 +127,8 @@ Stock	&1014867&4& 0.96&	0.81&	6417s\\
 \hline
 \end{tabular}
 \end{table}
+
+
 
 
 
