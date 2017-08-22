@@ -47,7 +47,7 @@ $L$ is any subset of $\Sigma^*$.
 For example, we may only want to consider sequences of length $k$.
 
 
-\subsection{Search Over Data Transformations}
+\subsection{Optimization Over Data Transformations}
 Every data cleaning problem in \sys is specified by a deterministic finite automaton (DFA). 
 A DFA is a 5-tuple:
 \[\langle S, A, \delta, s_0\rangle,\]
@@ -66,13 +66,13 @@ Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
 \]
 Given a quality function $Q$, a relation $R$, and a language $L$, find a sequence of transformations $l \in L$ (a sequence of inputs to the DFA) that optimizes the quality function.
 \[
-\textsf{search}(Q,R,L) = ~ \min_{l \in L} Q( l(R) ).  
+\textsf{opt}(Q,R,L) = ~ \min_{l \in L} Q( l(R) ).  
 \]
 
 \vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
 
 
-\vspace{0.5em} \noindent \textbf{Remark 2: } \textsf{search(Q,R,L)} is a hard problem. In fact, we can show that it is APX-Hard--that is, unless P=NP there does not exist a polynomial time approximation scheme.
+\vspace{0.5em} \noindent \textbf{Remark 2: } \textsf{opt(Q,R,L)} is a hard problem. In fact, we can show that it is APX-Hard--that is, unless P=NP there does not exist a polynomial time approximation scheme.
 Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
 Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem.
 
