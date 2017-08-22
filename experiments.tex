@@ -111,29 +111,40 @@ Without any optimizations, \sys is nearly 10x slower than MCD.
 But with learning, this gap is reduced to a factory of 4.
 Furthermore, if we parallelize on 16 threads, we match the the runtime of MCD.
 
-\subsubsection{Model-based Cleaning}
-Another approach to data cleaning
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{exp/exp3.png}
+    \caption{We evaluate \sys on a schema integration task from 55 different sources. There is a further data cleaning problem, where we would like to reconcile the values from different sources.
+    (SI) Schema Integration only, where we use string similarity metrics to match the attribute names, (DC) Data cleaning only enforces FDs on those names that are already consistent, and  (AC) denotes \sys (+L with learning +L16 with learning and parallelized over 16 threads). \label{exp3a}}
+\end{figure}
 
-\textbf{SK.TODO writeup Stock dataset}
+\subsubsection{Schema Integration}
+In the next experiment, we consider a schema integration problem. This dataset considers data for 1000 ticker symbols from 55 sources that covers key trading metrics for every trading day in a month.
+The challenge is to integrate the schema of these different sources. For example,
+in one source the closing price is denoted by 'Prev. Close' and in another it is 'Previous Close'.
+Once the schema is consistent, there is a further data cleaning problem, where we would like to reconcile the values from different sources. This can be achieved with a similar functional dependency relationship as described for the flight datasets.
+
+\vspace{0.5em}\noindent\textbf{Baselines: } We consider the following baselines: (SI) Schema Integration only, where we use string similarity metrics to match the attribute names, (DC) Data cleaning only, we treat schema names as consistent and enforce the same functional dependencies with a restricted chase.
+
+\vspace{0.5em}\noindent\textbf{Results: } Figure \ref{exp3a} plots the results of the experiment. If we apply schema integration only or only data cleaning there is a very high precision but poor recall. \sys can be used to perform both tasks and shows that we can improve the recall number significantly.
+Furthermore, results suggest that we can run \sys at a competitive speed with parallelization over 16 threads.
+
+\subsection{Microbenchmarks}
+In the next set of experiments, we evaluate key parameters that affect the performance of \sys.
+
+\subsubsection{Scaling Properties}
 
 
-\begin{table}[ht]
-\centering
-\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\hline
- & \#rows & \#cols & Pre & Rec & Runtime (s) \\
-\hline
-Stock	&1014867&4& 0.96&	0.81&	6417s\\
-\hline
-\end{tabular}
-\end{table}
+\subsubsection{Generalization}
+
+
+\subsubsection{Sensitivity}
 
 
 
 
 
-\subsection*{Exp 4. Learning}
-
+\subsection{Exp 4. Learning}
 \ewu{Merge this with Exp 5 and call it optimizations}
 
 \textbf{Sk. data is cleaned in blocks, as more blocks are cleaned search becomes faster as you can prune more. This shows the stock dataset.}
