@@ -1,24 +1,22 @@
 \section{Introduction}\label{intro}\sloppy
-Almost every industry has access to significantly more data than would have been imaginable even a decade ago.
-The role of a data scientist is to sift through these large datasets, extract meaningful insights, and build statistical models based on that data.
-While these new datasets are prolific and growing, they are also susceptible to various forms of data error including incompleteness, inconsistent representations, and corrupted data.
-Before analysis can begin, the data must be transformed, or cleaned, to ensure these corruptions do not affect the results.
-
-In practice, data cleaning mostly consists of writing collection of transformation rules, each of which is a predicate on the database and a transformation that applies to tuples satisfying the predicate.
-For example, a data scientist might write a rule that maps every record with an \textsf{country} attribute ``United States'' to ``United States of America''.
+Data cleaning usually involves tedious manual specification of transformation rules.
+For example, a data scientist might write a rule that maps every record with a \textsf{country} attribute ``United States'' to ``United States of America''.
 These collections of rules quickly grow in size, and if they are developed in an ad-hoc way, they can be brittle and hard to maintain~\cite{krishnan2016hilda}.
 Overly specific rules may not apply to future data, and overly general rules, might introduce unwanted side-effects.
-Designing accurate transformation rules is a painstaking process, which is widely reported to be one of the most effort-intensive steps in data science.
+Designing accurate transformation rules is a painstaking process, which is widely reported to be one of the most effort-intensive steps in data science~\cite{nytimes}.
 
-We explore to what extent such transformation rules can be automatically generated.
-In the example above, suppose the data scientist provides us with a dictionary of allowed country names, is it possible to automatically generate the mappings to entities in the dictionary?
-This particular example is well addressed by existing entity matching techniques, but what if the only supervision available was the accuracy of a downstream predictive model trained on the data--could an algorithm automatically find mappings that optimize the predictive model's accuracy?
-Such an objective is harder to pose in classical entity matching formalism.
-We explore the design of a single data cleaning system that can express both these problem instances in the same formalism.
-The key insight is that both of these examples can be expressed as a single meta-model:  a search over a formal language of transformations (i.e., allowed data cleaning operations and how they can compose) to find a sequence of transformations that optimizes a user-specified quality function (i.e., a function that scores the ``cleanliness'' of a database).
-Different levels of supervision, from precise dictionaries of allowed values to weak signals from statistical models, can be represented with different quality functions.
+We explore to what extent such transformation rules can be learned through a process of automatic trial-and-error on a dataset.
+The system simulates different sequences of data transformations and scores the result according to a user-specified data quality objective function.
+On its own, this is an inefficient way to search to search the set of transformation rules.
+However, we can leverage Machine Learning to learn a strong pruning heuristic incrementally.
+Transformations are often parametrized by literal values from the database (e.g., find string X and replace with string Y).
+If we clean data in small partitioned blocks, we can incrementally build a classifier that infers common patterns in these literals, such as whether the strings tend to be similar or tend to be different or the attributes that are likely to be touched.
+For example, consider the problem above where a data scientist is resolving inconsistencies in a \textsf{country} attribute to satisfy an integrity constraint.
+As we iterate through the distinct \textsf{country} values and simulate possible replacement values, it might become clear that the source string have to be close to the target strings in string similarity, i.e., ``United States'' is more likely to be replaced by ``United States of America'' than ``Zimbabwe''.
+Learning such a relationship automatically avoids hand coded heuristics which have to consider the complex relationship between how the analyst describes data quality and how exactly the transformations are defined.
 
-This formalism casts data cleaning as a \emph{sequential search} problem; analogous to the algorithms used AI, Robotic Planning, and Control.
+This basic algorithm, optimizing a sequence of black-box transformations over a black-box data quality function, has a number of important advantages: (1) it is highly expressive as it can model a wide range of data cleaning formalisms from integrity constraints to quantitative data cleaning in the same framework, (2) it is relatively easy to parallelize the search, and (3) the result of the algorithm is not only a cleaned database instance but transformations that can be applied to future data.
+This formalism casts data cleaning as a planning problem; analogous to the algorithms used AI, Robotic Planning, and Control.
 Similar to the way one plans out a sequence of chess moves in AI to gain a strategic board position, we can think of data cleaning as planning out a sequence of data transformations to maximize the score on a data quality function.
 And as in chess, where one cannot perfectly anticipate the opposing player's moves, in data cleaning we may not have a strong \emph{a priori} model of how a user-defined transformation rule modifies the data.
 As a result, the algorithm and search heuristics cannot make strong assumptions about the anticipated structure of any search instance.
@@ -26,19 +24,25 @@ This sort of an approach is increasingly attractive because recent results in AI
 Recent algorithms have been shown to match or exceed human performance in domains such as Go~\cite{silver2016mastering} and in Atari video games~\cite{mnih2015human}.
 As in many classical data cleaning problems, an optimal solution to AI search problems is very hard to discover, but pragmatically leverage distributed computing and pruning rules learned from data can tractably find acceptable solutions.
 
-This formulation is admittedly very general, but the potential is a single solving algorithm that can apply broadly across many different data cleaning and preparation problems, which can greatly reduce the complexity in the design of data cleaning systems.
-The most important property is that the search is over transformations (i.e., functions) rather than database instances.
-These transformations can be applied to unseen data without re-running the search. 
-Furthermore, it restricts all modifications to the dataset to the allowed transformation language allowing for improved intepretability and post-hoc debugging.
-Next, the search model supports black-box user-defined transformation and quality functions. 
-For example, a company could have \textsf{employee\_id} attributes in very specific formats and needs rules that can interpret those formats.
-Finally, the search model allows for mixing data cleaning abstractions such as quantitative data cleaning and integrity constraints in the same framework.
-The price we pay for this generality is run time, but our results suggest that a combination of exploiting the inherent parallelism in the search process and pruning rules for important special cases, can make the search time acceptable.
-
-We use this model as a starting point for search-based data cleaning system called \sys.
-We designed an API that takes classical data cleaning problem specifications, such as integrity constraints, gold-standard manually cleaned data, and statistical models, and translates those specifications into quality-maximizing search problems. 
-The system is amenable to special-case optimizations that prune unproductive search branches to make the runtime more competitive with special case systems.
-Pruning rules are specified as regular expressions over the formal language of transformations and can be static (i.e., fixed before execution) and dynamic (i.e., inferred from properties of the dirty database instance).
+We use this algorithm as a starting point for a new data cleaning system called \sys.
+We designed an API that takes classical data cleaning problem specifications, such as integrity constraints, gold-standard manually cleaned data, and statistical models, and translates those specifications into an iterative learning search problem. 
+Of course, we often need special-case optimizations that prune unproductive search branches to make the runtime more competitive with special case systems.
+We provide a model where pruning rules are specified as regular expressions over a formal language of transformations and can be static (i.e., fixed before execution) and dynamic (i.e., inferred from properties of the dirty database instance).
 The search algorithm we use is a memory-bounded best-first search which maintains the subset of the search frontier that can fit in memory. 
 This algorithm can be parallelized, distributed, and can cache repeated computations.
-Finally, we show that even stronger pruning rules can be learned from the data.
+
+In our experiments, we find that \sys achieves parity with state-of-the-art constraint, statistical, and quantitative data cleaning systems in terms of accuracy.
+On two datasets considered in prior data cleaning work of Flight arrival times and a Physician registry, \sys achieves a similar precision and recall to a recently proposed Denial Constraint system called HoloClean~\cite{rekatsinas2017holoclean}. 
+Similarly, we applied \sys to numerical outlier problems and compared to the Minimum Covariance Determinant (MCD) algorithm, which is the basis of another recent system called Macrobase~\cite{bailis2016macrobase}.
+Outliers removed by \sys  improved the accuracy of a downstream predictive models more significantly than MCD (5\% prediction accuracy improvement on the US Census Dataset) and a (4\% on an EEG dataset). 
+Finally, we present initial results demonstrating the scaling properties of \sys where parallelism and caching can reduce search time by 77x.
+
+Despite its generality, \sys by no means solves all data cleaning problems well. It is relatively easy to construct pathological cases on which the iterative learning search approach is impractical. 
+However, we present a new architecture for data cleaning with a relatively simple but expressive meta algorithm. 
+This greatly simplifies the design of these systems at the cost of special case run time.
+More importantly, it allows users to mix and match different data cleaning operations in the same workflow, such as using a statistical model and integrity constraints.
+We believe that trading off computation for generality is acceptable due to the offline nature of data cleaning and availability of commodity computing on the Cloud.
+
+
+
+
