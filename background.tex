@@ -77,6 +77,8 @@ By searching through all possible programs up to length \ewu{XXX} in $L$, we can
 
 
 \subsection{Approach Overview and Key Challenges}
+
+
 Talk about planning, incremental search over $L$, hardness.
 
 \vspace{0.5em} \noindent \textbf{Remark 2: } \textsf{opt(Q,R,L)} is a hard problem. In fact, we can show that it is APX-Hard--that is, unless P=NP there does not exist a polynomial time approximation scheme.
@@ -87,42 +89,41 @@ Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assi
 
 
 \if{0}
-Every data cleaning problem in \sys is specified by a deterministic finite automaton (DFA). 
-A DFA is a 5-tuple:
-\[\langle S, A, \delta, s_0\rangle,\]
-where $S$ is a set of states that the process can be in, $A$ is a set of inputs that the process can take, $\delta$ is a transition function that takes as input a state and an input and transitions the process to the next state in $S$, and $s_0$ is an initial state of the process.
+    Every data cleaning problem in \sys is specified by a deterministic finite automaton (DFA). 
+    A DFA is a 5-tuple:
+    \[\langle S, A, \delta, s_0\rangle,\]
+    where $S$ is a set of states that the process can be in, $A$ is a set of inputs that the process can take, $\delta$ is a transition function that takes as input a state and an input and transitions the process to the next state in $S$, and $s_0$ is an initial state of the process.
 
-The set of relations and the language of transformations defines a DFA:
-\[\langle \mathcal{R}, \Sigma, \delta, R_{dirty}\rangle, \]
-where the states $\mathcal{R}$ is the set of possible instances, the inputs are transformations from $\Sigma$, the transition function updates the instance with the transformation, and the initial state is the dirty instance $R_{dirty}$. Search problems can be defined over the DFA. 
-A quality function $Q$ maps an instance $R$ to a scalar where 1 implies it is clean:
-\[
-Q: \mathcal{R} \mapsto [0,1]
-\]
-A separable quality function is one that can be expressed as an average over cell-wise quality metrics $q(r,a)$ where 1 implies clean:
-\[
-Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
-\]
+    The set of relations and the language of transformations defines a DFA:
+    \[\langle \mathcal{R}, \Sigma, \delta, R_{dirty}\rangle, \]
+    where the states $\mathcal{R}$ is the set of possible instances, the inputs are transformations from $\Sigma$, the transition function updates the instance with the transformation, and the initial state is the dirty instance $R_{dirty}$. Search problems can be defined over the DFA. 
+    A quality function $Q$ maps an instance $R$ to a scalar where 1 implies it is clean:
+    \[
+    Q: \mathcal{R} \mapsto [0,1]
+    \]
+    A separable quality function is one that can be expressed as an average over cell-wise quality metrics $q(r,a)$ where 1 implies clean:
+    \[
+    Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
+    \]
 
-Note that in contrast to traditional programming-by-example problems~\cite{}, which take as input a well defined input and goal state, the latter is not present in our problem formulation.  It is replaced with a quality function that we seek to maximize.  This is an important distinction because (1) it models the uncertain nature of data cleaning, where the ground truth is typically not available~\cite{}, and (2) necessarily greedy.
+    Note that in contrast to traditional programming-by-example problems~\cite{}, which take as input a well defined input and goal state, the latter is not present in our problem formulation.  It is replaced with a quality function that we seek to maximize.  This is an important distinction because (1) it models the uncertain nature of data cleaning, where the ground truth is typically not available~\cite{}, and (2) necessarily greedy.
 
-\vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
+    \vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
 
 
 
 \fi
 
 \subsection{Relationship to Specialized Systems}
-Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).
-Next, we describe how different data cleaning paradigms can be cast as a sequential search problem.
+Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).  These have primarily been addressed as three separate classes of data cleaning problems---constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.  Solutions, measures of cleanliness, and optimizations have been developed for each class independently.  The rest of this subsection describes how each class can be cast as instances of our problem formulation. 
 
 \subsubsection{Constraint-based Systems}
-The classical model for data cleaning is using integrity constraints. 
-The data scientist describes the relationships between attributes in terms of functional dependencies, conditional functional dependencies, denial constraints, and other types of logical constraint constraints.
+Beginning with Codd's seminal paper that introduced the relational model, the formal notion of data errors is defined with respect to the set of integrity constraints defined over the database.   These can vary from attribute constraints such as type and domain constraints; to multi-attribute constraints such as functional dependencies, conditional functional dependencies, and denial constraints; to general \texttt{CHECK} constraints.   
+\ewu{Solutions use variatinos of the CHASE}.
 Then, if any of these constraints are violated, the system will search over updates to the inconsistent database instance to enforce the constraints.
 Recent example systems include NADEEF~\cite{DBLP:conf/sigmod/DallachiesaEEEIOT13}, LLunatic~\cite{geerts2013llunatic}, Holistic Data Cleaning~\cite{chu2013holistic}, and Big Dansing~\cite{khayyat2015bigdansing}.
-As in the running example, we can construct a quality function that marks every cell that is in violation with a 0 and every cell that is not with a 1.
-The allowed language would be replacing any cell with another value in the attribute domain.
+\ewu{Clarify that each system is specialized to a different type or combination of integrity constraints.  Why?   The commonality is that, similar to our running example, they seek to maximize a quality function tha measures the number of constraint violations (at the cell~\cite{} or record~\cite{} level).  }
+Since these systems return a cleaned database, their language can be modeled with a transformation template \texttt{fix(r,a,v)} that replaces a specific cell for record $r$ and attribute $a$ with a value $v$.  Typically $v$ is restricted to the values in the instance's attribute domain.
 
 While prior work are roughly speaking equivalent in expressiveness, they each have a different solution algorithm.
 For example, Dallachiesa et al. uses a SAT solver to enforce the constraints~\cite{DBLP:conf/sigmod/DallachiesaEEEIOT13}, Chu et al. uses a iterative algorithm that walks along a hypergraph~\cite{chu2013holistic}, and Geerts et al. is based on a fixed-point iteration~\cite{geerts2013llunatic}.
