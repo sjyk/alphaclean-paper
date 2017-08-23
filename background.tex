@@ -4,6 +4,7 @@ First, we overview the basic formalism of \sys and present its relationship to r
 \subsection{Data Transformations}
 We focus on data transformations that concern a single relational table. 
 Let $R$ be an instance over a set of attributes $A$, and let $\mathcal{R}$ denote the set of all possible instances over $A$.
+Let $r.a$ be the attribute value of $a \in A$ for row $r \in R$.
 $T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an input relation instance $R \in \mathcal{R}$ to a new (possibly cleaner) instance $R' \in \mathcal{R}$ that adheres to the same schema.  For instance, ``replace all \texttt{city} attribute values equal to {\it San Francis} with {\it SF}'' may be one data transformation, while ``delete the $10^{th}$ record'' may be another.   Data transformations can be composed using the binary operator $\circ$:
 \[
 (T_i \circ T_j)(R) =  T_i(T_j(R))
@@ -39,7 +40,7 @@ Given an input relation, the template finds all \texttt{attr} values equal to \t
 For instance, \texttt{find\_replace(``NYC'', ``NY'', ``city\_code'')} defines a data transformation that fixes the error in the second attribute.
 \end{example}
 
-Let $\Sigma$ define a set of distinct data transformations $\{T_1, T_2,..,T_N\}$, and
+Let $\Sigma$ be a set of distinct data transformations $\{T_1,\cdots,T_N\}$, and
 $\Sigma^*$ be the set of all finite compositions of $\Sigma$, i.e., $T_i\circ T_j$.
 A formal language $L$ over $\Sigma$ is a subset of $\Sigma^*$.
 
@@ -47,8 +48,45 @@ A formal language $L$ over $\Sigma$ is a subset of $\Sigma^*$.
   Continuing \Cref{ex1}, $\Sigma$ is defined as all possible parameterizations of \texttt{find\_replace}.  Since many possible possible parameterizations are non-sensical (e.g., the source string does not exist in the relation), we may bound $\Sigma$ to only source and target strings present in each attribute's instance domain~\cite{workthatdoesthis}.  In this case, there are $61$ possible data transformations, and $\Sigma^*$ defines any finite composition of these $61$ transformations.  The language $L$ can be further restricted to compositions of up to $k$ data transformations.  
 \end{example}
 
+Finally, let $Q(R): \mathcal{R} \mapsto [0,1]$ be a quality function where $1$ implies that the instance $R$ is clean.
+Although this general formulation captures arbitatry forms of evaluation, including crowdsourced quality validation~\cite{tamr,stuff}, common data cleaning algorithms~\cite{} evaluate the cleanliness of in instance by evaluating the relation on a row-by-row or cell-by-cell basis.  For this reason, we define two classes of quality functions: row-separable and cell-separable quality functions.
+The former expresses the overall quality based on row-wise quality function $q(r): R \mapsto [0,1]$ where $1$ implies that the record is clean:
+\[Q(R) \propto \sum_{r \in R} q(r)\]
+\noindent Similarly, a cell-separable quality function can be expressed based on a cell-wise quality function $q(r, a): (R\times A) \mapsto [0,1]$:
+\[Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)\]
+\noindent We are now ready to present data cleaning as the following optimization problem:
+\begin{problem}[Cleaning Synthesis Problem]
+Given a quality function $Q$, a relation $R$, and a language $L$, find a sequence of transformations $l \in L$ (a sequence of inputs to the DFA) that optimizes the quality function.
+\[
+\textsf{opt}(Q,R,L) = ~ \min_{l \in L} Q( l(R) ).  
+\]
+\end{problem}
 
-\subsection{Optimization Over Data Transformations}
+\begin{example}\label{ex3}
+Continuing~\Cref{ex1}, let us assume the following functional dependencies over the example relation: $\textsf{city\_name} \rightarrow \textsf{city\_code}$ and $\textsf{city\_code} \rightarrow \textsf{city\_name}$.
+We can efficiently identify inconsistencies by finding the cities that map to $>1$ city code, and vice versa.   Let such city names and codes be denoted $D_{city\_name}$ and $D_{city\_code}$, respectively.
+$Q(R$ is a cell-separable quality function where the cell-wise quality function is defined as $q(r, a) = 1 - (r.a \in D_a)$, such that $r.a$ is $1$ if the attribute value does not violate a functional dependency, and $0$ otherwise.
+
+By searching through all possible programs up to length \ewu{XXX} in $L$, we can find a cleaning program based on \texttt{find\_replace} that resolves all inconsistencies:
+\begin{lstlisting}
+    find_replace(New York, New York City, city_name)
+    find_replace(San Francisc, San Francisco, city_name)
+    find_replace(NYC, NY, city_code)
+\end{lstlisting}
+\end{example}
+
+
+\subsection{Approach Overview and Key Challenges}
+Talk about planning, incremental search over $L$, hardness.
+
+\vspace{0.5em} \noindent \textbf{Remark 2: } \textsf{opt(Q,R,L)} is a hard problem. In fact, we can show that it is APX-Hard--that is, unless P=NP there does not exist a polynomial time approximation scheme.
+Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
+Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem.
+
+
+
+
+\if{0}
 Every data cleaning problem in \sys is specified by a deterministic finite automaton (DFA). 
 A DFA is a 5-tuple:
 \[\langle S, A, \delta, s_0\rangle,\]
@@ -65,30 +103,14 @@ A separable quality function is one that can be expressed as an average over cel
 \[
 Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
 \]
-\begin{problem}[Cleaning Synthesis Problem]
-Given a quality function $Q$, a relation $R$, and a language $L$, find a sequence of transformations $l \in L$ (a sequence of inputs to the DFA) that optimizes the quality function.
-\[
-\textsf{opt}(Q,R,L) = ~ \min_{l \in L} Q( l(R) ).  
-\]
-\end{problem}
+
+Note that in contrast to traditional programming-by-example problems~\cite{}, which take as input a well defined input and goal state, the latter is not present in our problem formulation.  It is replaced with a quality function that we seek to maximize.  This is an important distinction because (1) it models the uncertain nature of data cleaning, where the ground truth is typically not available~\cite{}, and (2) necessarily greedy.
 
 \vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
 
 
-\vspace{0.5em} \noindent \textbf{Remark 2: } \textsf{opt(Q,R,L)} is a hard problem. In fact, we can show that it is APX-Hard--that is, unless P=NP there does not exist a polynomial time approximation scheme.
-Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
-Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem.
 
-
-\vspace{0.5em} \noindent \emph{Example 2: } 
-One can model this constraint with two functional dependencies: $\textsf{city\_name} \rightarrow \textsf{city\_code}$ and $\textsf{city\_code} \rightarrow \textsf{city\_name}$.
-With these functional dependencies, identifying inconsistencies is efficient -- it requires querying for the set cities that map to more than one city code, and vice versa. 
-$Q(R)$ is a separable quality metric where each cell is assigned a 0  if it contains a violating key. One solution to the search problem is:
-\begin{lstlisting}
-find_replace(New York, New York City, city_name)
-find_replace(San Francisc, San Francisco, city_name)
-find_replace(NYC, NY, city_code)
-\end{lstlisting}
+\fi
 
 \section{Taxonomy of Related Systems}
 Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).
