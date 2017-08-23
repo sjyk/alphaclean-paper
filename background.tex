@@ -64,10 +64,12 @@ A separable quality function is one that can be expressed as an average over cel
 \[
 Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
 \]
+\begin{problem}[Cleaning Synthesis Problem]
 Given a quality function $Q$, a relation $R$, and a language $L$, find a sequence of transformations $l \in L$ (a sequence of inputs to the DFA) that optimizes the quality function.
 \[
 \textsf{opt}(Q,R,L) = ~ \min_{l \in L} Q( l(R) ).  
 \]
+\end{problem}
 
 \vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
 
