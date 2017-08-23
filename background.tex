@@ -112,11 +112,11 @@ Note that in contrast to traditional programming-by-example problems~\cite{}, wh
 
 \fi
 
-\section{Taxonomy of Related Systems}
+\subsection{Relationship to Specialized Systems}
 Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).
 Next, we describe how different data cleaning paradigms can be cast as a sequential search problem.
 
-\subsection{Constraint-based Systems}
+\subsubsection{Constraint-based Systems}
 The classical model for data cleaning is using integrity constraints. 
 The data scientist describes the relationships between attributes in terms of functional dependencies, conditional functional dependencies, denial constraints, and other types of logical constraint constraints.
 Then, if any of these constraints are violated, the system will search over updates to the inconsistent database instance to enforce the constraints.
@@ -129,7 +129,7 @@ For example, Dallachiesa et al. uses a SAT solver to enforce the constraints~\ci
 Our goal with \sys is to reduce the complexity of such systems, by consolidating to a single general-purpose search algorithm and an API for specifying optimizations specific to particular problem classes.
 This means that the approach is more general and can handle novel combinations of data cleaning operations, e.g., denial constraints and numerical outliers.
 
-\subsection{Model-based Systems}
+\subsubsection{Model-based Systems}
 Another class of systems uses statistical properties to define data errors, which is also called Quantitative Data Cleaning (see survey by Hellerstein~\cite{hellerstein2008quantitative}).
 A user can define a statistical model that the data should conform to, e.g., all numerical values must be concentrated with $p$ standard deviations from the mean. 
 More generally, one can use a model to score records to see how likely those value combinations are.
@@ -155,7 +155,7 @@ Each record is treated as a document and each attribute is treated as word.
   Like the NLP application, this vector space captures semantic relationships between records.
   We can define the same anomaly detection objective as above over these features.
   
-\subsection{Programming-by-Demonstration}
+\subsubsection{Programming-by-Demonstration}
 Finally, \sys is very related to systems that apply programming-by-demonstration (PbD) approach to data preparation problems.
 This approach was most notably proposed in the Data Wrangler project, where a human provided initial examples of how to transform a set of semi-structured tuples into a structured schema~\cite{wrangler,trifacta}.
 The system performed a search to find a sequence of transformations to best reproduce the humans demonstration.
