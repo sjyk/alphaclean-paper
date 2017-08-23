@@ -76,51 +76,15 @@ By searching through all possible programs up to length \ewu{3} in $L$, we can f
 \end{example}
 
 
-\subsection{Approach Overview and Key Challenges}
-
-Our problem forumlation is a direct instance of {\it planning}~\cite{planningbook}, where an agent identifies a sequence of actions to achieve a goal.   In our setting, the agent (\sys) explores a state space ($\mathcal{R}$) from an initial state (the input relation) by following transitions (applying $T_i \in \Sigma$) such that the sequence of actions is valid (within $\Sigma^*$) and the quality of the final state ($Q(R_{final})$) is maximized.  
-Unfortunately, cleaning synthesis is APX-Hard, that is, there does not exist a polynomial time approximation unless P=NP.
-
-\begin{theorem}[Cleaning Synthesis is APX-Hard]
-We show a proof sketch that the cleaning synthesis problem is APX-Hard---
-Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
-Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem. $\QEDB$
-\end{theorem}
-
-Despite the problem complexity, recent successes in planning problems---ranging from AlphaGo that \ewu{does something}, and \ewu{Another example}---highlight the potential for practical solutions by leveraging the structure of the problem.  To this end, \sys uses a standard forward state-space algorithm that incrementally grows a tree of operators and prunes paths below a threshold of the best path so far. 
-
-Although this naive formulation is unacceptably slow for even small problems, we show that the algorithm is flexible enough to adapt existing data cleaning optimizations as pruning rules, as well as accomodate novel pruning heuristics (\Cref{xxx}).  In addition, it is simple enough exploit the parallelism available on modern multi-core and cloud compute infrastructures (\Cref{xxx}).
-
-\ewu{TODO: Ask SJ what he is parallelizing}
-
-\if{0}
-    Every data cleaning problem in \sys is specified by a deterministic finite automaton (DFA). 
-    A DFA is a 5-tuple:
-    \[\langle S, A, \delta, s_0\rangle,\]
-    where $S$ is a set of states that the process can be in, $A$ is a set of inputs that the process can take, $\delta$ is a transition function that takes as input a state and an input and transitions the process to the next state in $S$, and $s_0$ is an initial state of the process.
-
-    The set of relations and the language of transformations defines a DFA:
-    \[\langle \mathcal{R}, \Sigma, \delta, R_{dirty}\rangle, \]
-    where the states $\mathcal{R}$ is the set of possible instances, the inputs are transformations from $\Sigma$, the transition function updates the instance with the transformation, and the initial state is the dirty instance $R_{dirty}$. Search problems can be defined over the DFA. 
-    A quality function $Q$ maps an instance $R$ to a scalar where 1 implies it is clean:
-    \[
-    Q: \mathcal{R} \mapsto [0,1]
-    \]
-    A separable quality function is one that can be expressed as an average over cell-wise quality metrics $q(r,a)$ where 1 implies clean:
-    \[
-    Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
-    \]
-
-    Note that in contrast to traditional programming-by-example problems~\cite{}, which take as input a well defined input and goal state, the latter is not present in our problem formulation.  It is replaced with a quality function that we seek to maximize.  This is an important distinction because (1) it models the uncertain nature of data cleaning, where the ground truth is typically not available~\cite{}, and (2) necessarily greedy.
-
-    \vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
 
 
 
-\fi
 
-\subsection{Relationship to Specialized Systems}
-Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).  These have primarily been addressed as three separate classes of data cleaning problems---constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.  Solutions, measures of cleanliness, and optimizations have been developed for each class independently.  The rest of this subsection describes how each class can be cast as instances of our problem formulation. 
+
+\subsection{Modeling Expressiveness}
+We now show how our problem formulation can be used to express a wide range data cleaning problems that have traditionally be tackled in isolation.  These span three major classes of problems: constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.   The next subsection describes the key technical challenge.
+
+% Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).  These have primarily been addressed as three separate classes of data cleaning problems---constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.  Solutions, measures of cleanliness, and optimizations have been developed for each class independently.  The rest of this subsection describes how each class can be cast as instances of our problem formulation. 
 
 \subsubsection{Constraint-based Systems}
 Beginning with Codd's seminal paper that introduced the relational model, the formal notion of data errors is defined with respect to the set of integrity constraints defined over the database.   These can vary from attribute constraints such as type and domain constraints; to multi-attribute constraints such as functional dependencies, conditional functional dependencies, and denial constraints; to general \texttt{CHECK} constraints.   
@@ -180,6 +144,60 @@ Such approaches are clearly linked to \sys. The quality function is a score on e
 Consider the example table as before (where managers can't earn less than employees), but this time  a human provides an example repair.
 The quality function measures the degree to which the table matches the human examples after applying the data transformations.
 
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Approach Overview and Key Challenges}
+
+Our problem forumlation is a direct instance of {\it planning}~\cite{planningbook}, where an agent identifies a sequence of actions to achieve a goal.   In our setting, the agent (\sys) explores a state space ($\mathcal{R}$) from an initial state (the input relation) by following transitions (applying $T_i \in \Sigma$) such that the sequence of actions is valid (within $\Sigma^*$) and the quality of the final state ($Q(R_{final})$) is maximized.  
+
+One may be hesitant in adopting our problem formulation because, although it is sufficiently general to model many existing data cleaning problems, such generality often comes at the expense of runtime performance.   Unfortunately, the cleaning synthesis is APX-Hard, meaning there does not exist a polynomial time approximation unless P=NP.  For this reason, {\it the key technical challenge is to show that \sys can solve data cleaning problems with comparable run-time as existing specialized systems, and can be easily extended to support new optimizations.}
+
+\begin{theorem}[Cleaning Synthesis is APX-Hard]
+We show a proof sketch that the cleaning synthesis problem is APX-Hard---
+Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
+Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem. $\QEDB$
+\end{theorem}
+
+Despite the problem complexity, recent successes in similar planning problems---ranging from AlphaGo that \ewu{does something}, and \ewu{Another example}---highlight the potential for practical solutions by leveraging the structure of the problem.  To this end, \sys uses a standard forward state-space algorithm that incrementally grows a tree of operators and prunes paths below a threshold of the best path so far. 
+
+Although this naive formulation is unacceptably slow for even small problems, we show that the algorithm is flexible enough to adapt existing data cleaning optimizations as pruning rules, as well as accomodate novel pruning heuristics (\Cref{xxx}).  In addition, it is simple enough exploit the parallelism available on modern multi-core and cloud compute infrastructures (\Cref{xxx}).
+
+\ewu{TODO: Ask SJ what he is parallelizing}
+
+\if{0}
+    Every data cleaning problem in \sys is specified by a deterministic finite automaton (DFA). 
+    A DFA is a 5-tuple:
+    \[\langle S, A, \delta, s_0\rangle,\]
+    where $S$ is a set of states that the process can be in, $A$ is a set of inputs that the process can take, $\delta$ is a transition function that takes as input a state and an input and transitions the process to the next state in $S$, and $s_0$ is an initial state of the process.
+
+    The set of relations and the language of transformations defines a DFA:
+    \[\langle \mathcal{R}, \Sigma, \delta, R_{dirty}\rangle, \]
+    where the states $\mathcal{R}$ is the set of possible instances, the inputs are transformations from $\Sigma$, the transition function updates the instance with the transformation, and the initial state is the dirty instance $R_{dirty}$. Search problems can be defined over the DFA. 
+    A quality function $Q$ maps an instance $R$ to a scalar where 1 implies it is clean:
+    \[
+    Q: \mathcal{R} \mapsto [0,1]
+    \]
+    A separable quality function is one that can be expressed as an average over cell-wise quality metrics $q(r,a)$ where 1 implies clean:
+    \[
+    Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)
+    \]
+
+    Note that in contrast to traditional programming-by-example problems~\cite{}, which take as input a well defined input and goal state, the latter is not present in our problem formulation.  It is replaced with a quality function that we seek to maximize.  This is an important distinction because (1) it models the uncertain nature of data cleaning, where the ground truth is typically not available~\cite{}, and (2) necessarily greedy.
+
+    \vspace{0.5em} \noindent \textbf{Remark 1: } For readers familiar with stochastic processes, this DFA is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
+
+
+
+\fi
 
 
 
