@@ -1,50 +1,51 @@
-\section{Background}
+\section{Problem Definition}
 First, we overview the basic formalism of \sys and present its relationship to related work.
 
 \subsection{Data Transformations}
 We focus on data transformations that concern a single relational table. 
 Let $R$ be an instance over a set of attributes $A$, and let $\mathcal{R}$ denote the set of all possible instances over $A$.
-A data transformation is a function that maps an instance $R \in \mathcal{R}$ to a new instance with the same schema $R' \in \mathcal{R}$: 
-\[T(R): \mathcal{R} \mapsto  \mathcal{R}\]
-Data transformations preserve schema and data type, and have a binary operator $\circ$, which denotes composition:
+$T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an input relation instance $R \in \mathcal{R}$ to a new (possibly cleaner) instance $R' \in \mathcal{R}$ that adheres to the same schema.  For instance, ``replace all \texttt{city} attribute values equal to {\it San Francis} with {\it SF}'' may be one data transformation, while ``delete the $10^{th}$ record'' may be another.   Data transformations can be composed using the binary operator $\circ$:
 \[
 (T_i \circ T_j)(R) =  T_i(T_j(R))
 \]
-Let $\Sigma$ define a set of distinct transformations $\{T_1, T_2,..,T_N\}$.
-Let $\Sigma^*$ be the set of all finite sub-sequences of $\Sigma$, i.e., $T_i(T_j(R))$.
-A formal language $L$ over  $\Sigma$ is a subset of $\Sigma^*$.
+The composition of one or more data transformations is called a {\it cleaning program}.   
 
+In practice, users will specify {\it transformation templates} $T(R, [\theta_1,\cdots,\theta_k])$, and every assignment to the parameters represents one possible transformation.  
+\begin{example}\label{ex1}
+The following relation contains two attributes \textsf{city\_name} and \textsf{city\_code}.  Suppose there is a one-to-one relationship between the two attributes. In this case, the relation is inconsistent with respect to the relationship and contains errors highlighted in \red{red}.
 
-\vspace{0.5em} \noindent \emph{Example 1: } As an example, given below is a relation with two attributes \textsf{city\_name} and \textsf{city\_code}. 
-Assuming unique city names, there should be a one-to-one map between city names and the city code. The problem is that the relation we have is inconsistent.
+  \begin{table}[ht!]
+  \centering
+  \label{my-label}
+  \begin{tabular}{|l|l|l|}
+  \hline
+  \rowcolor[HTML]{000000} 
+  & \white{city\_name}            & \white{city\_code}   \\ \hline
+  1 & San Francisco                    & SF                                  \\ \hline
+  2& \red{\textbf{New York}}           & NY                                  \\ \hline
+  3 & New York City                    & \red{\textbf{NYC}} \\ \hline
+  4 & \red{\textbf{San Francisc}}      & SF                                  \\ \hline
+  5 & San Jose                         & SJ                                  \\ \hline
+  6 & San Mateo                        & SM                                  \\ \hline
+  7 & New York City                    & NY                                  \\ \hline
+  \end{tabular}
+  \end{table}
 
-\begin{table}[ht!]
-\centering
-\label{my-label}
-\begin{tabular}{|l|l|l|}
-\hline
-\rowcolor[HTML]{000000} 
-& {\color[HTML]{FFFFFF} city\_name}            & {\color[HTML]{FFFFFF} city\_code}   \\ \hline
-1 & San Francisco                                & SF                                  \\ \hline
-2& {\color[HTML]{FE0000} \textbf{New York}}     & NY                                  \\ \hline
-3 & New York City                                & {\color[HTML]{FE0000} \textbf{NYC}} \\ \hline
-4 & {\color[HTML]{FE0000} \textbf{San Francisc}} & SF                                  \\ \hline
-5 & San Jose                                     & SJ                                  \\ \hline
-6 & San Mateo                                    & SM                                  \\ \hline
-7 & New York City                                & NY                                  \\ \hline
-\end{tabular}
-\end{table}
-
-\noindent Consider the following function:
+The following transformation template uses three parameters: \texttt{attr} specifies an attribute, \texttt{srcstr} specifies a source string, and \texttt{targetstr} specifies a target string.   
 \[
-\textsf{find\_replace}(\text{source}, \text{target}, \text{attribute})
+\textsf{find\_replace}(\text{srcstr}, \text{targetstr}, \text{attr})
 \]
-This function finds all cells with the source string, and replaces it with a target string, in the specified attribute.
-If we consider exact string matches and only target strings in the attribute's current domain, there are $61$ possible operations for the example relation.
-The set of all find-and-replace operations defines $\Sigma$.
-$\Sigma^*$ defines any finite sequences composed of these $61$ operations.
-$L$ is any subset of $\Sigma^*$. 
-For example, we may only want to consider sequences of length $k$.
+Given an input relation, the template finds all \texttt{attr} values equal to \texttt{srcstr} and replaces those cells with \texttt{targetstr}. 
+For instance, \texttt{find\_replace(``NYC'', ``NY'', ``city\_code'')} defines a data transformation that fixes the error in the second attribute.
+\end{example}
+
+Let $\Sigma$ define a set of distinct data transformations $\{T_1, T_2,..,T_N\}$, and
+$\Sigma^*$ be the set of all finite compositions of $\Sigma$, i.e., $T_i\circ T_j$.
+A formal language $L$ over $\Sigma$ is a subset of $\Sigma^*$.
+
+\begin{example}\label{ex2}
+  Continuing \Cref{ex1}, $\Sigma$ is defined as all possible parameterizations of \texttt{find\_replace}.  Since many possible possible parameterizations are non-sensical (e.g., the source string does not exist in the relation), we may bound $\Sigma$ to only source and target strings present in each attribute's instance domain~\cite{workthatdoesthis}.  In this case, there are $61$ possible data transformations, and $\Sigma^*$ defines any finite composition of these $61$ transformations.  The language $L$ can be further restricted to compositions of up to $k$ data transformations.  
+\end{example}
 
 
 \subsection{Optimization Over Data Transformations}
