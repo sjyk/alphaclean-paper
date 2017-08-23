@@ -81,7 +81,7 @@ By searching through all possible programs up to length \ewu{3} in $L$, we can f
 
 
 
-\subsection{Modeling Expressiveness}
+\subsection{Model Expressiveness}
 We now show how our problem formulation can be used to express a wide range data cleaning problems that have traditionally be tackled in isolation.  These span three major classes of problems: constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.   The next subsection describes the key technical challenge.
 
 % Since the beginning of data management, several research and commercial systems have been proposed to improve data cleaning efficiency and accuracy (see~\cite{rahm2000data} for a survey).  These have primarily been addressed as three separate classes of data cleaning problems---constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.  Solutions, measures of cleanliness, and optimizations have been developed for each class independently.  The rest of this subsection describes how each class can be cast as instances of our problem formulation. 
@@ -139,6 +139,7 @@ Finally, \sys is very related to systems that apply programming-by-demonstration
 This approach was most notably proposed in the Data Wrangler project, where a human provided initial examples of how to transform a set of semi-structured tuples into a structured schema~\cite{wrangler,trifacta}.
 The system performed a search to find a sequence of transformations to best reproduce the humans demonstration.
 Recently, this basic approach has been extended in the Foofah system~\cite{jin2017foofah}.
+\ewu{Talk about Scorpion.  These are basically constraints over the output, and generating programs to satisfy them.}
 
 Such approaches are clearly linked to \sys. The quality function is a score on each record on how accurately it matches a manually cleaned gold-standard. \sys can additionally couple automated and PbD approaches. 
 Consider the example table as before (where managers can't earn less than employees), but this time  a human provides an example repair.

@@ -3,14 +3,12 @@ Now, we will overview some of the preliminary concepts and describe how this for
 \sys is designed as a software stack with three layers: a specification layer, a search layer, and an execution layer.
 To understand how these layers interact, we will use the example in Section 2 throughout this section.
 
-\iffalse
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
  \includegraphics[width=\columnwidth]{figures/alphacleanarch.png}
  \caption{ \sys is given a specification of quality (e.g., integrity constraints or a statistical model the data must conform to) and a language  of  allowed  data  transformations,  and  it  searches  to find a sequence of transformations that maximizes the quality metric. \label{fig:arch} }
 \end{figure}
-\fi
 
 \subsection{Specification Layer} The provides an API for specifying a quality function and a language of transformations. This allows one to specify a data cleaning problem for a particular dirty instance. As described in the previous section, we provide an API for translating common data cleaning specifications, constraints, statistical models, and gold standard examples, into quality functions. 
 
