@@ -1,19 +1,22 @@
 \section{Search Overview}
-The optimization algorithm takes a quality function, a language, and a dirty relation, and outputs a sequence of transformations (of max depth $k$) that maximizes the quality function.
+This section describes \sys's search algorithm and optimizations in greater detail.    
+
+% The optimization algorithm takes a quality function, a language, and a dirty relation, and outputs a sequence of transformations (of max depth $k$) that maximizes the quality function.
 
 \begin{algorithm}[t]
 \KwData{Q, R, L, (k, $\gamma$)}
 
-Initialize $O$ as a priority queue with a singleton NOOP transformation\\
+// Initialize priority queue of candidate programs\\
+$O = \{NOOP\}$
 
 \While{ $\exists ~ o \in O: \|o\| < k$ }
 {
-    \For{$o \in O: \|o\| < k$}{
+    \For{$o \in O: \|o\| < k$ }{
         
         Pop $o$ from the queue.
         
         \For{$t \in L$}{
-             $o' = o \circ t$
+             $o' = o \circ t$ 
              
              Push $o'$ with priority $\bar{Q}(o'(R))$.
         }
@@ -23,24 +26,23 @@ Initialize $O$ as a priority queue with a singleton NOOP transformation\\
 }
 
 \Return Lowest item on the queue
-\caption{Greedy Best-First Tree Search}
+\caption{Greedy Best-First Tree Search \ewu{turn O and o into P and p to be consistent with background}}
 \label{alg:main}
 \end{algorithm}
 
-\subsection{Motivation}
-In principle, any tree search algorithm can apply over the data cleaning DFA and would be correct.
-However, the traversal order and expansion policy is important in this search problem and can lead to highly suboptimal performance.
+\subsection{Naive Search Procedures}
+In principle, any tree search algorithm over $L$ would be correct.
+However, the traversal order and expansion policy is important in this search problem.  We describe the algorithmic and practical reasons why two naive procedures---breadth-first search (BFS) and depth-first search (DFS)---exhibit poor search runtimes.
 
-Let us first start with a breadth-first search (BFS). At each round one would expand every node on the frontier by composing it with another transformation in the library.
-The first problem with this algorithm is that since each node in this tree $o$ represents a sequence of transformations.
-Evaluating the value of $o$ can be very expensive since it would have to evaluate the entire path to the root.
-$o$ is a composition of many transformations and may require a number of passes over the dataset.
-This can be avoided if we can materialize (either to disk or memory) the frontier,that is, for each node in the priority queue $o \in O$, we have a cached result of $o(R)$. 
-However, with BFS, the frontier is expoential in the support of the language and the system would quickly run out of memory.
+\stitle{BFS} This approach extends each program in the search frontier with every possible data transformation in $\Sigma$.  To extend a candidate program $l_c$ with $T \in \Sigma$, it evaluates $Q((T\circ l_c)(R))$.  Unfortunately, the frontier grows exponentially with each iteration.  Additionally, evaluating every new candidate program $T\circ l_c$ can be expensive if the input relation is large.   Although the cost can be reduced by materializing $l_c(R)$, it is not possible to materialize all candidate programs in the frontier for all but the most trivial cleaning problems.    It is desirable to use asearch procedure that bounds the size of the frontier and the materialization costs.
 
-An algorithm with slightly better system properties would be a depth-first search (DFS).
-Cache would only have to maintain the preceding $k-1$ nodes on the path to the root.
-However, DFS will waste time on highly improbable sequences of transformations.
+% The first problem with this algorithm is that since each node in this tree $o$ represents a sequence of transformations.
+% Evaluating the value of $o$ can be very expensive since it would have to evaluate the entire path to the root.
+% $o$ is a composition of many transformations and may require a number of passes over the dataset.
+% This can be avoided if we can materialize (either to disk or memory) the frontier,that is, for each node in the priority queue $o \in O$, we have a cached result of $o(R)$. 
+% However, with BFS, the frontier is expoential in the support of the language and the system would quickly run out of memory.
+
+\stitle{DFS} Depth-first search only needs to materialize the intermediate results for a single program at a time, however it is highly inefficient since the vast majority of programs that it explores will have low quality scores.  
 
 \subsection{Basic Algorithm}
 A best-first search expands the most promising nodes chosen according to a specified cost function.
@@ -69,6 +71,32 @@ By tuning $\gamma$, the user can essentially set how much memory is used for mat
     \label{fig:my_label}
 \end{figure*}
 
+\subsection{Optimizations Overview}
+
+\stitle{Static Pruning} A static optimization is a regular expression that all transformation sequences must satisfy independent of the data. 
+\[\textsf{static\_opt}(L, \text{regex} ) \mapsto L'\]
+For example, since the find-and-replace operations are idempotent, i.e., $T(T(R)) = T(R)$, we may want to only consider the set of all sequences with no neighboring repeated transformations. Similarly, we may also want to prune all search branches that make no effect (i.e., find-and-replace New York with New York).
+These two regular expressions alone reduce the overall number of evaluations by $48\%$ in the above example (120050 v.s. 226981 evaluations).
+There are several other possible optimizations  such as avoiding changes that reverse previous changes $T_i(T_j(R)) = R$.
+
+
+\stitle{Dynamic Pruning} A dynamic optimization can query the data and cost function to generate rules that are instance-specific:
+\[\textsf{dyn\_opt}(Q, R, L) \mapsto \text{regex}\]
+For example, we may want to ensure that all the evaluations are ``correlated'' with the cost function--that is it makes modifications that are likely to affect the costs.
+This is possible if the cost separable where we have a score for each cell. In this case, we can find all the cells in violation of the functional dependencies and make sure that the ``source'' field of the find-and-replace operations only match values that are in violation.
+These optimizations are called ``dynamic' because they can be determined from the active domain (i.e., after applying a transformation, recalculate new optimization rules).
+Applying this optimization (in addition to the others) to the example reduces the search space to 1582 evaluations v.s. 226981 unoptimized (143x reduction).
+
+\stitle{Parallelization}  Arbitrary constraint satisfaction problems are challenging because all variables can interact. While this is certainly the case for arbitrary quality functions, in many cases, data errors are localized. For example, replacing \texttt{San Francisc} with \texttt{San Francisco} has no effect on the records referring to \texttt{New York City}. The final class of optimizations are blocking rules which have been widely used in entity resolution systems:
+\[\textsf{block}(Q, R, L) \mapsto \{R_1,...,R_k\} \]
+For quality functions generated from dependencies, we can determine blocks analytically--looking at which violating tuples are linked through the constraint.
+However, in general, these blocking rules can be learned (e.g., with clustering) or user defined.
+The search can execute on each of the blocks independently.
+\ewu{Emphasize that this is based on the decomposable nature of the quality function}
+
+\stitle{Additional Optimizations}  A large cost to the search algorithm stems from the need to execute the quality function over the output of each candidate program.  In some cases, it is possible to estimate the quality function without fully running the candidate program.  For instance, \ewu{foofah}.  Alternatively, it may be sufficient to run the candidate program over a sample of the input relation.  These are opportunities for future work.
+
+\section{Search Optimizations}
 \subsection{Parallelism}
 The best-first search algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Each expansion can be forked into its own thread. However, this actually makes the materialization described above a bit more challenging. 
 

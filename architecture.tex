@@ -73,23 +73,4 @@ threshold := SELECT 6*std(attribute) from R;
 With no additional information, the search approach described would have to evaluate $61^3 = 226981$ transformations, which is clearly impractical even for this small example.
 This layer also provides an interface for custom search optimizations:
 
-\vspace{0.5em}\noindent\textbf{Static Optimizations: } A static optimization is a regular expression that all transformation sequences must satisfy independent of the data. 
-\[\textsf{static\_opt}(L, \text{regex} ) \mapsto L'\]
-For example, since the find-and-replace operations are idempotent, i.e., $T(T(R)) = T(R)$, we may want to only consider the set of all sequences with no neighboring repeated transformations. Similarly, we may also want to prune all search branches that make no effect (i.e., find-and-replace New York with New York).
-These two regular expressions alone reduce the overall number of evaluations by $48\%$ in the above example (120050 v.s. 226981 evaluations).
-There are several other possible optimizations  such as avoiding changes that reverse previous changes $T_i(T_j(R)) = R$.
-
-
-\vspace{0.5em}\noindent\textbf{Dynamic Optimizations: } A dynamic optimization can query the data and cost function to generate rules that are instance-specific:
-\[\textsf{dyn\_opt}(Q, R, L) \mapsto \text{regex}\]
-For example, we may want to ensure that all the evaluations are ``correlated'' with the cost function--that is it makes modifications that are likely to affect the costs.
-This is possible if the cost separable where we have a score for each cell. In this case, we can find all the cells in violation of the functional dependencies and make sure that the ``source'' field of the find-and-replace operations only match values that are in violation.
-These optimizations are called ``dynamic' because they can be determined from the active domain (i.e., after applying a transformation, recalculate new optimization rules).
-Applying this optimization (in addition to the others) to the example reduces the search space to 1582 evaluations v.s. 226981 unoptimized (143x reduction).
-
-\vspace{0.5em}\noindent\textbf{Blocking Rules: }  Arbitrary constraint satisfaction problems are challenging because all variables can interact. While this is certainly the case for arbitrary quality functions, in many cases, data errors are localized. For example, replacing \texttt{San Francisc} with \texttt{San Francisco} has no effect on the records referring to \texttt{New York City}. The final class of optimizations are blocking rules which have been widely used in entity resolution systems:
-\[\textsf{block}(Q, R, L) \mapsto \{R_1,...,R_k\} \]
-For quality functions generated from dependencies, we can determine blocks analytically--looking at which violating tuples are linked through the constraint.
-However, in general, these blocking rules can be learned (e.g., with clustering) or user defined.
-The search can execute on each of the blocks independently.
 \fi
