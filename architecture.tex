@@ -11,7 +11,7 @@ This section describes the three major components of the \sys system architectur
 
 The {\it Specification Interface} takes as input domain-specific cleanliness measures and data cleaning operations that the user provides  and translates them into a quality function and data transformation language.   For instance, our current implementation supports a wide range of quality functions including: attribute type constraints, functional dependencies, denial constraints, lookup tables~\cite{}, parametric and non-parametric outlier models, and correlations between numeric attributes.  Our existing cleaning data transformations primarily focus on conditional cell and record transformations that apply a transformation to all cells or records that satisfy a predicate; both the transformation parameters and the predicate are learned by \sys.  \Cref{s:appendix} provides a detailed description of the supported functions and extendible API. 
 
-The {\it Search} component takes as input $Q$ and $L$, and performs a greedy search heuristic to find a program $p^* \in L$ that maximizes $Q$.  Users can supply hints that exploit the problem structure to reduce the runtime by pruning the search space and parallelizing the search.  \sys supports two main classes of pruning-based optimizations. {\it Static} rules that invalidate programs in $L$ that are unlikely to be useful.  For instance, composing the same idempotent transformation (e.g., \texttt{find\_replace(SFO, SF, city\_name)}) is redundant and can be immediately skipped.  {\it Dynamic} rules have access to the result of a candidate program when making pruning decisions, and we propose a novel approach to learn automatic dynamic pruning rules that can reduce end-to-end runtimes by up to \ewu{XXX} at the expense of slightly lower recall.  \Cref{s:search} describes the pruning rules and parallelization optimization in detail.
+The {\it Search} component takes as input $Q$ and $L$, and performs a greedy search heuristic to find a program $p^* \in L$ that maximizes $Q$.  Users can supply hints that exploit the problem structure to reduce the runtime by pruning the search space and parallelizing the search.  To bound the search space, users specify a maximum program length $k$.    \sys also supports two main classes of pruning-based optimizations. {\it Static} rules that invalidate programs in $L$ that are unlikely to be useful.  For instance, composing the same idempotent transformation (e.g., \texttt{find\_replace(SFO, SF, city\_name)}) is redundant and can be immediately skipped.  {\it Dynamic} rules have access to the result of a candidate program when making pruning decisions, and we propose a novel approach to learn automatic dynamic pruning rules that can reduce end-to-end runtimes by up to \ewu{XXX} at the expense of slightly lower recall.  \Cref{s:search} describes the pruning rules and parallelization optimization in detail.
 
 
 Finally, once search component outputs the cleaning program $p^*$, the {\it Program Optimizer} optimizes $P^*$ provides an API to apply simple query compilation techniques.  \sys currently replaces variables with literal values whenever possible.  In addition, we implement loop fusion~\cite{} to avoid scanning the input and intermediate relations for each transformation in $p^*$. Finally, we inline the data transformation functions into the loops.    
@@ -20,13 +20,13 @@ For example, consider the operations from~\Cref{ex3}.  Since the \texttt{find\_r
 Since they do not conflict, it would be inefficient to execute them sequentially and iterate over the data three separate times.
 Instead, one should combine the operations together and execute at once:
 \begin{lstlisting}
-for r in rows:
- if r[city_name] == `New York':
-   r[city_name] = `New York City'
- elif r[city_name] == `San Francisc':
-   r[city_name] = `San Francisco'
- if r[city_code] == `NYC'
-   r[city_code] = `NY'
+    for r in rows:
+     if r[city_name] == `New York':
+       r[city_name] = `New York City'
+     elif r[city_name] == `San Francisc':
+       r[city_name] = `San Francisco'
+     if r[city_code] == `NYC'
+       r[city_code] = `NY'
 \end{lstlisting}
 We find that even these simple optimizations improve the final program runtime by \ewu{XXX}, and leave further improvements to future work.
 
