@@ -9,7 +9,7 @@ $T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an in
 \[
 (T_i \circ T_j)(R) =  T_i(T_j(R))
 \]
-The composition of one or more data transformations is called a {\it cleaning program}.   
+The composition of one or more data transformations is called a {\it cleaning program} $l$.   
 
 In practice, users will specify {\it transformation templates} $T(R, [\theta_1,\cdots,\theta_k])$, and every assignment to the parameters represents one possible transformation.  
 \begin{example}\label{ex1}
@@ -43,6 +43,7 @@ For instance, \texttt{find\_replace(``NYC'', ``NY'', ``city\_code'')} defines a 
 Let $\Sigma$ be a set of distinct data transformations $\{T_1,\cdots,T_N\}$, and
 $\Sigma^*$ be the set of all finite compositions of $\Sigma$, i.e., $T_i\circ T_j$.
 A formal language $L$ over $\Sigma$ is a subset of $\Sigma^*$.
+A program $l$ is valid if it is an element of $L$.
 
 \begin{example}\label{ex2}
   Continuing \Cref{ex1}, $\Sigma$ is defined as all possible parameterizations of \texttt{find\_replace}.  Since many possible possible parameterizations are non-sensical (e.g., the source string does not exist in the relation), we may bound $\Sigma$ to only source and target strings present in each attribute's instance domain~\cite{workthatdoesthis}.  In this case, there are $61$ possible data transformations, and $\Sigma^*$ defines any finite composition of these $61$ transformations.  The language $L$ can be further restricted to compositions of up to $k$ data transformations.  
@@ -56,9 +57,10 @@ The former expresses the overall quality based on row-wise quality function $q(r
 \[Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)\]
 \noindent We are now ready to present data cleaning as the following optimization problem:
 \begin{problem}[Cleaning Synthesis Problem]
-Given a quality function $Q$, a relation $R$, and a language $L$, find a sequence of transformations $l \in L$ (a sequence of inputs to the DFA) that optimizes the quality function.
+Given a quality function $Q$, a relation $R$, and a language $L$, find valid program $l \in L$ that optimizes the quality function.
+\ewu{This used to minimize Q.  I changed to maximize based on above text.  Make sure we are consistent throughout the paper}
 \[
-\textsf{opt}(Q,R,L) = ~ \min_{l \in L} Q( l(R) ).  
+\textsf{opt}(Q,R,L) = ~ \max_{l \in L} Q( l(R) ).  
 \]
 \end{problem}
 

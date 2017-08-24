@@ -27,7 +27,7 @@ The benefits of this approach are: (1) there are few restrictions on what the us
 
 \sys is a new system for data cleaning built around such a general purpose optimization algorithm.  
 \sys is given an objective function that models the data quality of a relation.
-We provide an API that translates existing data models such as Functional Dependencies, Denial Constraints, Statistical Models into an objective function.
+We provide an API that translates existing error models such as Functional Dependencies, Denial Constraints, Statistical Models into an objective function.
 \sys is also given a parametrized set of data cleaning operators that transform relations.
 Given these two pieces, the objective and the transformation language, \sys incrementally builds a data cleaning program to optimize objective function.
 \sys is initialized with the identity operation and repeatedly expands the most promising sequences seen so far (i.e., composing it with a new transformation from the language).
