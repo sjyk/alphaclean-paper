@@ -1,30 +1,31 @@
 \section{Introduction}\label{intro}\sloppy
 It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}.
-Designing algorithms and systems to automate or partially automate data cleaning is very challenging and continues to be an active area of research~\cite{DBLP:conf/sigmod/ChuIKW16}.
+Designing algorithms and systems to automate or partially automate data cleaning continues to be an active area of research~\cite{DBLP:conf/sigmod/ChuIKW16}.
 The primary technical challenge is that real-world data is highly variable, where a given dataset can have multiple different types of errors (e.g., numerical outliers, duplicates, and missing values).
 Each type of error is often handled by a different class of algorithms, if not, a completely different system.
+This results in data cleaning systems that are optimized for a narrow set of problems and are not expressive enough to cover all of the errors in manifest in the data.
 
-Consequently, data cleaning pipelines often span across multiple sub-systems to best address different types of errors~\cite{krishnan2016hilda} making them difficult to tune, debug, and generalize when the data changes~\cite{sculley2014machine,krishnan2016hilda}.
-Ideally, designing such pipelines by hand should be avoided and data cleaning should be \emph{declarative}, wherein the analyst specifies a high-level data model (e.g., constraints the data should satisfy) and a system optimally enforces the model.
-In other words, the data scientist need not code low-level data transformations but instead focus her effort on specifying a high-level data model.
+Consequently, a recent survey suggests that industrial data cleaning pipelines are a patchwork of custom scripts and multiple specialized systems~\cite{krishnan2016hilda}, and this fragmentation makes it difficult to tune, debug, and generalize to new data~\cite{sculley2014machine,krishnan2016hilda}.
+Ideally, the majority of the data cleaning process should reside in a single system with a  \emph{declarative} interface, wherein the analyst specifies a high-level data model (e.g., constraints the data should satisfy) and a system automatically generates the pipeline to enforce the model.
 The idea of declarative data cleaning is not new~\cite{rahm2000data}, but such approaches have classically been restricted to data models specified in subsets of first-order logic and only recently have considered extensions better handle uncertain numerical data~\cite{prokoshyna2015combining}.
 The prevailing wisdom is that there is an inherent tradeoff between the expressiveness of the data model and the efficiency of the (approximate) solution algorithm---limited models allow the system designer to exploit specific algorithmic structures.
 
 However, two recent trends, namely, the success of model-free learning in AI and the availability commodity cloud computing encourage us to reconsider this algorithmic philosophy.
-Recent progress in planning problems such as AlphaGo~\cite{silver2016mastering} and in Atari video games~\cite{mnih2015human} have shown that a prudent combination Machine Learning and distributed search can approximately optimize very complex black-box objective functions.
-The intriguing aspect of these results is that the same algorithm that learns to play an Atari game~\cite{mnih2015human} can be used to train a robot to perform as task~\cite{gu2017deep}.
-The underlying optimization algorithm encodes few specifics about the objective or structure of the domain.
-Domain knowledge is introduced after the fact in terms of how the problem is featurized or how the planning problem is defined.
+Recent progress in planning problems such as AlphaGo~\cite{silver2016mastering} and automatically playing Atari video games~\cite{mnih2015human} have shown that a prudent combination of Machine Learning and distributed search can approximately optimize very complex black-box objective functions.
+The intriguing aspect of these results is that the same algorithm, called Deep Q Reinforcement Learning, that learns to play an Atari game~\cite{mnih2015human} can be used on a very different problem, such as training a robot~\cite{gu2017deep}.
+The underlying optimization algorithm encodes few specifics about the objective or structure of the domain  and pragmatically finds a reasonable local optimum.
+The optimization algorithm is general enough to support a very wide class of problems--at the cost of additional computational resources since it is unaware of instance-specific structure.
 
 We explore the extent to which the same approach applies to data cleaning.
 Instead of developing specialized algorithms for each new variety of data model, we should consider a general discrete optimization framework that models almost all data cleaning problems: given a black-box objective function that defines cleanliness, find a sequence of data transformations that maximizes this objective.
-The logic for the special cases should introduced as pruning rules (e.g., disallowed sequences) or modifications to the data representation (e.g., clustering certain records together) to solve specific problem instances more efficiently.
-And, instead of specially tuned search heuristics, the heuristics are learned incrementally while cleaning the data.
-The benefits of this approach are: (1) there are few restrictions on what the user can express, where a more complex objective function simply requires a longer optimization time, (2) the output is a sequence of transformations rather than a clean database instance so the logic of the algorithm is more interpretable and can apply to future data, and (3) it greatly simplifies the solution algorithm since it is not coupled to any particular problem instance.
+The additional logic for the special cases should layered onto the general framework as pruning rules (e.g., disallowed sequences) or modifications to the data representation (e.g., clustering certain records together) to solve specific problem instances more efficiently.
+One unique contribution of this paper, inspired by AlphaGo, is that search heuristics are learned from the data to avoid users having to carefully tune the algorithm for each use-case.
+As more data is cleaned, the system learns common transformation patterns that can be reused in the future. 
+The benefits of this approach are: (1) there are few restrictions on what the user can express, (2) the output is a sequence of transformations rather than a clean database instance so the logic of the algorithm is more interpretable and can apply to future data, and (3) it greatly simplifies the solution algorithm since it is not coupled to any particular problem instance.
 
 We present \sys, a new system for data cleaning.
 \sys is given an objective function that models the data quality of a relation.
-We provide an API that translates existing error models such as Functional Dependencies, Denial Constraints, Statistical Models into an objective function.
+We provide an API that translates existing data cleaning formalisms such as Functional Dependencies, Denial Constraints, Statistical Models into a compatible objective function.
 \sys is also given a parametrized set of data cleaning operators that transform relations.
 Given these two pieces, the objective and the transformation language, \sys incrementally builds a data cleaning program to optimize objective function.
 \sys is initialized with the identity operation and repeatedly expands the most promising sequences seen so far (i.e., composing it with a new transformation from the language).
@@ -32,15 +33,18 @@ The expansion policy, or the choice of which sequence to expand and how, is wher
 For example, if we clean data in small partitioned blocks (common in many data cleaning systems), we can incrementally build a classifier that can score expansions that are likely to be successful--an approach analogous to that used in AlphaGo~\cite{silver2016mastering}.
 Similarly, if we know that the objective was generated from a functional dependency, we can restrict the expansions to only those transformations that modify cells specifically in violation. 
 
-The goal of our experiments is to show that we can achieve parity with state-of-the-art constraint, statistical, and quantitative data cleaning systems in terms of accuracy for a reasonable runtime.
+The goal of our experiments is to show that such an architecture can achieve parity with state-of-the-art constraint, statistical, and quantitative data cleaning systems in terms of accuracy--despite the generality.
 On two datasets considered in prior data cleaning work of Flight arrival times and a Physician registry, \sys achieves a similar precision and recall to a recently proposed Denial Constraint system called HoloClean~\cite{rekatsinas2017holoclean}. 
 Similarly, we applied \sys to numerical outlier problems and compared to the Minimum Covariance Determinant (MCD) algorithm, which is the basis of another recent system called Macrobase~\cite{bailis2016macrobase}.
 Outliers removed by \sys  improved the accuracy of a downstream predictive models more significantly than MCD (5\% prediction accuracy improvement on the US Census Dataset) and a (4\% on an EEG dataset). 
 But more importantly, this is achieved with a core codebase of 2000 lines of python code, and readily amenable to aggressive systems optimizations such as parallelization, caching, and incremental maintenance.
 In all of our experiments, we present the degree of parallelization need to match the the runtime of a state-of-the-art competitor.
 
-In short, \sys enables a cleaning system that directly leverages the user's domain expertise to articulate high level cleaning goals and automatically chooses a sequence of transformations.  Although it is still possible to design pathological settings for our approach, our experiments show strong evidence that \sys is comparable or better in terms of accuracy than specialized cleaning systems, can meet competitive run times to those systems.
-It additionally easily extends to datasets with a mixture of error types---such as formatting errors and integrity constraint violations.   In addition, we believe the high level interface can accelerate end-to-end data cleaning for modern data science applications, while leveraging the substantial parallelization opportunities brought by the cloud. 
+In short, \sys enables a cleaning system that allows the user's to articulate high level cleaning goals and automatically chooses a sequence of transformations.  
+It is important to note that there are clear limitations in this design.
+In some sense, \sys trades off generality for runtime, and it is clearly slower than specialized data cleaning without significantly more resources.
+Second, \sys sacrifices many of the provable properties achieved in specialized systems (e.g., constraint satisfaction). 
+However, our experiments suggest that in practice \sys is comparable or better in terms of accuracy than specialized cleaning systems, can meet competitive run times to those systems with sufficient parallelization. In addition, we believe the high level interface significantly reduces the human burden in data cleaning for modern data science applications, enabled by the substantial parallelization opportunities brought by the cloud. 
 
 
 

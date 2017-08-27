@@ -64,10 +64,10 @@
 
 \begin{document}
 
-%\setlength{\belowdisplayskip}{3pt} \setlength{\belowdisplayshortskip}{3pt}
-%\setlength{\abovedisplayskip}{3pt} \setlength{\abovedisplayshortskip}{3pt}
-%\setlength{\belowcaptionskip}{-10pt}
-%\selectfont
+\setlength{\belowdisplayskip}{3pt} \setlength{\belowdisplayshortskip}{3pt}
+\setlength{\abovedisplayskip}{3pt} \setlength{\abovedisplayshortskip}{3pt}
+\setlength{\belowcaptionskip}{-10pt}
+\selectfont
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{example}{Example}
@@ -168,8 +168,8 @@
 
 %\input{coverletter.tex}
 
-\title{\sys: Iterative Learning Search for Data Cleaning}
-
+%\title{\sys: Declarative Data Cleaning with \\ Learning and Tree-Search}
+\title{\sys: A Declarative Data Cleaning System Inspired By AlphaGo}
 
 \numberofauthors{1}
 \author{ Sanjay Krishnan$\,^{*}$, Michael J. Franklin$\,^{*\dag}$, Ken Goldberg$\,^{*}$, Eugene Wu{$\,^{\dag\dag}$}  \\
@@ -185,18 +185,18 @@
 \maketitle
 
 \begin{abstract}
-Data cleaning is widely reported to be one of the most human-intensive steps in the analysis process.
-We explore to what extent such transformation rules can be learned through a process of automatic trial-and-error on a dataset.
-The system simulates different sequences of data transformations and scores the result according to a user-specified data quality objective function.
-Inspired by recent work in AI, such as playing Go~\cite{silver2016mastering} and in Atari video games~\cite{mnih2015human}, we propose an iteratively learning search model that applies the trial-and-error procedure to small blocks of data and incrementally learns a model to prune the trials.
-This basic algorithm has a number of important advantages: (1) it is highly expressive as it can model a wide range of data cleaning formalisms from integrity constraints to quantitative data cleaning in the same framework, (2) it exhibits parallelism not only over the data but also over search algorithm, and (3) the result of the algorithm is not only a cleaned database instance but transformations that can be applied to future data.
-We present a system called \sys, which is built around this algorithm.
-\sys additionally provides an API for specifying special-case optimizations. 
-In our experiments, we find that \sys achieves parity with state-of-the-art specialized constraint, statistical, and quantitative data cleaning systems in terms of accuracy.
-On two datasets considered in prior data cleaning work of Flight arrival times and a Physician registry, \sys achieves a similar precision and recall to a recently proposed (2017) Denial Constraint system called HoloClean. 
-Similarly, we applied \sys to numerical outlier problems and compared to the Minimum Covariance Determinant (MCD) algorithm, which is the basis of another recent system (2017) called Macrobase.
+Results in AI, like AlphaGo, have shown that a combination of Machine Learning and distributed search can effectively optimize very complex objective functions, e.g., the value of board positions in a complex game like Go.
+These results are highly relevant to the study of data cleaning, which often involves an optimization over modifications to a dataset to enforce a complex, interdependent set of data constraints.
+This paper explores explicitly posing the data cleaning as a planning problem: given an objective function that defines cleanliness, find a feasible sequence of data transformations that maximizes this objective.
+Our system, \sys, is based on this general optimization framework that can express a very large class of data cleaning problems including cleaning with rules, statistical models, and crowd sourcing.
+While very general, special case performance can be improved through an API that specifies pruning and data partitioning rules on top of this general framework. 
+The system additionally adaptively learns additional pruning functions with Machine Learning to exploit systematic errors in the dataset--and re-use previously discovered transformation patterns.
+The benefits of this approach are: (1) there are few restrictions on what the user can express at the cost of run time, (2) the output is a sequence of transformations rather than a clean database instance so the logic of the algorithm is more interpretable and can apply to future data, and (3) the optimization algorithm is greatly simplified and parallelizable.
+Surprisingly, we find that \sys achieves parity with state-of-the-art specialized constraint, statistical, and quantitative data cleaning systems in terms of accuracy.
+On two datasets considered in prior data cleaning work of Flight arrival times and a Physician registry, \sys achieves a similar precision and recall to a recently proposed Denial Constraint systems. 
+Similarly, we applied \sys to numerical outlier problems and compared to the Minimum Covariance Determinant (MCD) algorithm.
 Outliers removed by \sys  improved the accuracy of a downstream predictive models more significantly than MCD (5\% prediction accuracy improvement on the US Census Dataset) and a (4\% on an EEG dataset). 
-Finally, we present initial results demonstrating the scaling properties of \sys where parallelism and caching can reduce search time by nearly two orders of magnitude.
+We find that \sys achieves these levels for a very reasonable amount of additional computation (up-to 64 additional search threads).
 \end{abstract}
 
 
@@ -210,18 +210,18 @@ Finally, we present initial results demonstrating the scaling properties of \sys
 \input{experiments.tex}
 
 \input{relatedwork.tex}
-%\input{conclusion.tex}
+\input{conclusion.tex}
 %\input{acks.tex}
 
 
 
 
 %\bibliographystyle{abbrv}
-%\scriptsize
-%\fontsize{8.8pt}{9.9pt} \selectfont
+
 \bibliographystyle{abbrv}
 \bibliography{ref} 
-\normalsize \selectfont
+\scriptsize
+\fontsize{8.8pt}{9.9pt} \selectfont
 
 %\input{appendix.tex}
 
