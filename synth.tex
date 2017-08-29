@@ -48,7 +48,7 @@ However, the traversal order and expansion policy is important in this search pr
 \stitle{DFS} Depth-first search only needs to materialize the intermediate results for a single program at a time, however it is highly inefficient since the vast majority of programs that it explores will have low quality scores.  
 
 
-\subsection{Basic Algorithm and Optimizations Overview}
+\subsection{Search Algorithm and Optimizations}
 Best-first search expands the most promising nodes chosen according to a specified cost function.
 We consider a greedy version of this algorithm, which removes nodes on the frontier that are more than $\gamma$ times worse than the current best solution (\Cref{alg:main}).
 Making $\gamma$ smaller makes the algorithm asympotically consistent but uses more memory to store the frontier, whereas $\gamma=1$ is a pure greedy search with minimal memory requirements.  
@@ -96,7 +96,7 @@ The main insight in block-wise cleaning is that many errors are local to a small
 % and if cleaning xforms are independent
 
 
-\stitle{Parallel Program Evaluation} It is clear that the candidate programs can be evaluated and pruning in a parallel fashion, and is one of the major innovations in modern planning systems.  However, the size of the search state dominated by the input relation size, and can be prohibitively large to cache and share when parallelizing the algorithm in a distributed setting.  Section~\ref{s:parallel} describes how we manage the trade-offs when parallelizing \sys in shared memory and distributed settings.
+\stitle{Parallel Program Evaluation} It is clear that the candidate programs can be evaluated and pruning in a parallel fashion across multiple cores and multiple machines, and is one of the major innovations in modern planning systems.  However, unlike classic planning problems where communications are small due to the compact size of each state, \sys's state size is determined by the relation instance, and can lead to prohibitively high communication costs and memory caching requirements.   Section~\ref{s:parallel} describes how we manage the trade-offs when parallelizing \sys in shared memory and distributed settings.
 
 % Arbitrary constraint satisfaction problems are challenging because all variables can interact. While this is certainly the case for arbitrary quality functions, in many cases, data errors are localized. For example, replacing \texttt{San Francisc} with \texttt{San Francisco} has no effect on the records referring to \texttt{New York City}. The final class of optimizations are blocking rules which have been widely used in entity resolution systems:
 % \[\textsf{block}(Q, R, L) \mapsto \{R_1,...,R_k\} \]
