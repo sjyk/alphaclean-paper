@@ -1,0 +1,80 @@
+\section{Search Optimizations}\label{s:opts}
+
+\subsection{Parallelism}\label{s:parallel}
+The best-first search algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Each expansion can be forked into its own thread. However, this actually makes the materialization described above a bit more challenging. We use Ray~\footnote{https://github.com/ray-project/ray} to implement the parallel search. 
+
+\subsubsection{Shared Memory Parallelization}
+The most straight-forward case is when we have access to low-latency shared memory between the expansion threads. In each expansion round, the main thread will assign each expansion node to workers and they will evaluate a given transformation. Each worker will make a copy of $o(R)$ (the node it is expanding) into shared memory. 
+If the expanded transformation is within $\gamma$ of the best current result, then it will update the copy, otherwise delete it. The point of synchronization is after all expansions are finished, and the main driver will flush all transformations less than $\gamma$ of the best result, and then assign new workers for the next round. 
+
+\subsubsection{Distributed Parallelization}
+In cases, where we do not have access to low-latency shared memory, the communication costs of the above algorithm can be impractical. For each expanded node, the entire table has to be communicated to each of the distributed nodes.
+We consider a worker-driver model, and assume that the number of workers is $k$.
+A schematic diagram of the algorithm is shown in figure \ref{fig:algo}.
+
+\vspace{0.25em} \noindent  \textbf{Initialization. } 
+Each worker has a copy of the base relation with no transformations.
+In the first round of expansion, the driver assigns to each worker $\frac{|L|}{k}$ expansions. 
+Each worker executes each of its assigned expansions, and stores the transformations that are within $\gamma$ of the best local result.
+
+\vspace{0.25em} \noindent  \textbf{Reconciliation. }  Note that the global top-$\gamma$ set is a subset of the union of the all local results.
+The workers then communicate the quality of their best transformation. This can be used to reconcile the local materializations to only the global top-$\gamma$ set.
+This set is not necessarily balanced, e.g., one worker might have almost all of the top transformations.
+The next step is a balancing step, where each worker communicates the number of materialized expansions it currently stores.
+The workers with more than $\frac{|O|}{k}$ materialized expansions  randomly select ones to evict, and the driver re-distributes these to nodes with too few materialized expansions.
+This is done by communicated the transformation and the result is re-computed on the new worker.
+If $|O| < k$, then expansions are chosen at random to be replicated.
+The result of the reconciliation step is that all workers have an evenly distributed set of materialized expansions.
+
+\vspace{0.25em} \noindent  \textbf{Next Round. } After reconciliation, each worker is associated with a particular $o \in O$ (or a set of them). To parallelize, the driver must simply ensure that it assigns new expansions only to those workers that have materialized the parent.
+The algorithm then repeats, expanding each node locally, and then reconciles the results.
+
+
+
+
+
+
+
+
+
+\subsection{Learning Dynamic Pruning Rules}\label{s:dynlearn}
+To effectively search through the language of transformations, search heuristics are important.
+However, it can be challenge to devise these heuristics \emph{a priori}.
+This section describes how Machine Learning can be used to learn a search heuristic as data is cleaned.
+
+\subsubsection{Motivation}
+The search algorithms in  most automatic data cleaning frameworks are carefully tuned for a specific quality function or class of quality functions. For example, the chase used in functional dependency resolution does not make an edit to the table unless it enforces at least one tuple's FD relationship. Exploiting the structure of the specific problems allows for a tractable solution technique. Similarly, in entity matching problems, one restricts the search to only matching tuples that are likely to be similar based on some similarity metric.
+These are not static optimizations, i.e., knowing how to prune the search space requires knowing the underlying data or making strong modeling assumptions about the types of transformations used.
+
+\subsection{Algorithm \ewu{(Give a name?)}}
+\sys executes the search on each block of data.
+The result is a sequence of transformations to optimize the quality metric on that block.
+Every transformation in this sequence can be treated as a positive training example $L^+$, and every transformation not in this sequence can be treated as a negative example $L^-$.
+The idea is that if we apply the search to a sufficient number of blocks then we can train a classifier to predict whether a transformation will be included in the final sequence.
+It is important to note that this prediction is over the transformations and not the data. 
+
+Internally, \sys uses a Logistic Regression classifier to make this classification. The Logistic Regression is tuned towards False Positives (i.e., keep a bad search branch). This is done by training the model and shifting the prediction threshold until there are no False Negatives. 
+
+
+\subsection{Requirements on Transformations}
+Suppose we made only the following assumption about the language of transformations used.
+Each transformation consists is described by a fixed-length feature vector in $\mathbb{R}^k$:
+\[
+\textsf{feat}: T \mapsto \mathbb{R}^k 
+\]
+An example of a featurization, consider a transformation from the the running example:
+\begin{lstlisting}
+find_replace(New York, New York City, city_name)
+\end{lstlisting}
+The featurization could encode the string similarity of the two literal parameters and an indicator vector describing which column it applies to.
+
+Consider an alternative to a predefined search heuristic where we clean data in small blocks.
+For the initial blocks, we search without a heuristic.
+As we continuously perform the search, we train a classifier on these features to reject search branches that are not typically in the final solution.
+This allows us to exploit any patterns in the literal parameters that repeatedly occur.
+
+For example, some columns might not be dirty and are not worthwile to clean.
+In the example above, another observation could be that the source and target strings in the optimal sequence are very close in terms of string similarity (as opposed to arbitrary transformations).
+If each of these operations was featurized with a single scalar that is the edit-distance between the two strings, then the classifier could learn a pruning threshold (i.e., not considering find-and-replace operations above that threshold).
+
+
