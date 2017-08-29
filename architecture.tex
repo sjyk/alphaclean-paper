@@ -2,7 +2,7 @@
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
- \includegraphics[width=\columnwidth]{figures/alphacleanarch.png}
+ \includegraphics[width=\columnwidth]{figures/alphacleanarch.pdf}
  \caption{ \sys is given a specification of quality (e.g., integrity constraints or a statistical model the data must conform to) and a language  of  allowed  data  transformations,  and  it  searches  to find a sequence of transformations that maximizes the quality metric. \label{fig:arch} }
 \end{figure}
 This section describes the three major components of the \sys system architecture (\Cref{fig:arch}), split between the user interface to specify the cleaning problem, the core search algorithm, and optimization of the resulting cleaning program.  We focus on the interface and program optimization in this section, and focus on the optimization algorithm in the rest of the paper. Designing data cleaning interfaces~\cite{DBLP:conf/uist/GuoKHH11} and query optimization for data cleaning~\cite{DBLP:conf/vldb/GalhardasFSSS01, khayyat2015bigdansing} are interesting problems in their own right, however, these were not a focus of the first version of \sys.  

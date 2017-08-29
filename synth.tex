@@ -80,7 +80,19 @@ This is possible if the cost separable where we have a score for each cell. In t
 These optimizations are called ``dynamic' because they can be determined from the active domain (i.e., after applying a transformation, recalculate new optimization rules).
 Applying this optimization (in addition to the others) to the example reduces the search space to 1582 evaluations v.s. 226981 unoptimized (143x reduction).
 
-\stitle{Parallelization}  Arbitrary constraint satisfaction problems are challenging because all variables can interact. While this is certainly the case for arbitrary quality functions, in many cases, data errors are localized. For example, replacing \texttt{San Francisc} with \texttt{San Francisco} has no effect on the records referring to \texttt{New York City}. The final class of optimizations are blocking rules which have been widely used in entity resolution systems:
+\stitle{Parallelization} 
+There are two types of paraellization.  row-wise by gather scattering over the blocks, and evaluating candidate programs in parallel.  We support both.  It's particularly easy for decomposable quality and xforms.
+
+the whole dataset might require 15 transforms to clean
+but only 1 transform per block
+
+so makes >linear pruning costs faster
+and if cleaning xforms are independent
+
+
+
+
+Arbitrary constraint satisfaction problems are challenging because all variables can interact. While this is certainly the case for arbitrary quality functions, in many cases, data errors are localized. For example, replacing \texttt{San Francisc} with \texttt{San Francisco} has no effect on the records referring to \texttt{New York City}. The final class of optimizations are blocking rules which have been widely used in entity resolution systems:
 \[\textsf{block}(Q, R, L) \mapsto \{R_1,...,R_k\} \]
 For quality functions generated from dependencies, we can determine blocks analytically--looking at which violating tuples are linked through the constraint.
 However, in general, these blocking rules can be learned (e.g., with clustering) or user defined.
