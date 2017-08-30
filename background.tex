@@ -9,7 +9,7 @@ $T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an in
 \[
 (T_i \circ T_j)(R) =  T_i(T_j(R))
 \]
-The composition of one or more data transformations is called a {\it cleaning program} $p$.   
+The composition of one or more data transformations is called a {\it cleaning program} $p$.   If $p = p' \circ T$, then let $p'$ be the parent of $p$; the parent of a single data transformation is a NOOP.  
 
 In practice, users will specify {\it transformation templates} $T(R, [\theta_1,\cdots,\theta_k])$, and every assignment to the parameters represents one possible transformation.  
 \begin{example}\label{ex1}
@@ -153,7 +153,8 @@ The quality function measures the degree to which the table matches the human ex
 In these systems, the language is often highly restricted.
 For example, \cite{wrangler, jin2017foofah} use the domain-specific language proposed in~\cite{raman2001potter}.
 
-\subsection{Data Cleaning and Planning}
+\subsection{Approach Overview and Challenges}
+
 Our problem formulation is a direct instance of a {\it planning} in AI~\cite{russell1995modern}, where an agent identifies a sequence of actions to achieve a goal.  In our setting, the agent (\sys) explores a state space ($\mathcal{R}$) from an initial state (the input relation) by following transitions (applying $T_i \in \Sigma$) such that the sequence of actions is valid (within $\Sigma^*$) and the quality of the final state ($Q(R_{final})$) is maximized.  
 
 For readers familiar with stochastic processes, this search problem is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$.
@@ -165,7 +166,7 @@ One may be hesitant in adopting our problem formulation because, although it is 
 \end{theorem}
 \begin{proof}[Sketch]
 Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
-Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem. $\QEDB$
+Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem. 
 \end{proof}
 
 Despite the problem's worst-case complexity, 
