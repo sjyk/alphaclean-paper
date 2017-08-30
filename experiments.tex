@@ -181,8 +181,12 @@ Indeed we find an interesting trade-off.  The 1 attribute predicate performed wo
 % This result highlights an important point overly specific rules may not apply to future data, and overly general rules, might introduce unwanted side-effects.
 
 
-\subsubsection{Algorithm Properties}
-Finally, Figure \ref{fig:opt} illustrates the scaling properties of \sys. We run all of our experiments on a cluster of 4 mx.large EC2 instances. We compare three baseline implementations: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. 
+\subsubsection{Scaling}
+Finally, Figure \ref{fig:opt} illustrates the properties that affect \sys's scaling.  
+
+The experiments run on a cluster of 4 mx.large EC2 instances, so that \sys is parallelized in a distributed fashion across
+
+\Cref{fig:opt}a shows the benefits of the materialization and communication We compare three baseline implementations: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. 
 Figure \ref{fig:opt}A shows how the run time on the FEC dataset varies as a function of the number of worker threads on the cluster.
 With no optimizations and single threaded, the runtime is 4432 seconds.
 If we use the materialization strategy described in the paper, we can reduce this runtime by a factor of 10 (432 seconds) even on a single thread.
