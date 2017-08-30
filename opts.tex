@@ -41,11 +41,13 @@ To effectively search through the language of transformations, search heuristics
 However, it can be challenge to devise these heuristics \emph{a priori}.
 This section describes how Machine Learning can be used to learn a search heuristic as data is cleaned.
 
-\subsubsection{Motivation}
+\stitle{Motivation}
 The search algorithms in  most automatic data cleaning frameworks are carefully tuned for a specific quality function or class of quality functions. For example, the chase used in functional dependency resolution does not make an edit to the table unless it enforces at least one tuple's FD relationship. Exploiting the structure of the specific problems allows for a tractable solution technique. Similarly, in entity matching problems, one restricts the search to only matching tuples that are likely to be similar based on some similarity metric.
 These are not static optimizations, i.e., knowing how to prune the search space requires knowing the underlying data or making strong modeling assumptions about the types of transformations used.
 
-\subsection{Algorithm \ewu{(Give a name?)}}
+\ewu{So you're not training based on how the quality function changes as a program gets longer?  If each training example is simply the program for a block, how many blocks does there need to be?  If the search process isn't doing a great job, does that mean the learned classifier will suck?}
+
+\stitle{Approach}
 \sys executes the search on each block of data.
 The result is a sequence of transformations to optimize the quality metric on that block.
 Every transformation in this sequence can be treated as a positive training example $L^+$, and every transformation not in this sequence can be treated as a negative example $L^-$.
@@ -55,7 +57,8 @@ It is important to note that this prediction is over the transformations and not
 Internally, \sys uses a Logistic Regression classifier to make this classification. The Logistic Regression is tuned towards False Positives (i.e., keep a bad search branch). This is done by training the model and shifting the prediction threshold until there are no False Negatives. 
 
 
-\subsection{Requirements on Transformations}
+\stitle{Requirements on Transformations}
+\ewu{Are these actually transformation requirements, or just that there is some way to map each transformation/transformation template into a numeric vector?}
 Suppose we made only the following assumption about the language of transformations used.
 Each transformation consists is described by a fixed-length feature vector in $\mathbb{R}^k$:
 \[
