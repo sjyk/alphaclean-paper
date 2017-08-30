@@ -127,31 +127,30 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
 \subsection{\sys In Depth}
 This subsection studies the key parameters that affect \sys's accuracy and runtime, the robustness of its cleaning programs, and its algorithmic properties.
 
-\subsubsection{Key Variables}
-First, we evaluate which parameters affect the difficulty of the search problem. We start with the FEC dataset described in the previous experiments. 
+\subsubsection{Algorithmic Sensitivity}
+We use the FEC experiment setup to study how \sys's system parameters affect its ability to quickly generate cleaning programs. 
 
-\vspace{0.5em}\noindent \textbf{Blocking: } Partitioning the dataset into smaller pieces effectively reduces the search horizon. For example, consider a dataset of 1000 records where each record requires an independent transformation. Rather than solving a search problem of depth 1000, we can solve 1000 search problems of depth 1.
-The maximum granularity of blocks depends on the nature of the transformations and quality functions.
-Currently, these blocks are set by the user in the form of predicates that partition the dataset.
-Figure \ref{fig:microbenchmarks}a illustrates how the performance of \sys is affected block size. We partition the FEC dataset on three different attributes each with a different blocksize. The smaller the blocks the better the algorithm scales with the data. Without blocking, on this dataset, the search is very impractical.
+\stitle{Block-wise CLeaning} Partitioning the dataset into smaller blocks effectively reduces the problem complexity.  This can have tremendous performance benefits when each block exhibits very few errors that are independent of the other blocks.  \Cref{fig:microbenchmarks}a shows the performance benefits when varying the block size; we define the blocks by partitioning on three different attributes that have different domain sizes.  Reducing the block size directly improves the runtime; the search is effectively non-terminating when blocking is not used.    
 
-\vspace{0.5em}\noindent \textbf{Language: } The next experiment (Figure \ref{fig:microbenchmarks}b) shows how the search time within a block scales as a function of the support of the transformation language. The more transformations there are, the higher the branching factor of the search problem. Without any optimizations, the search time is exponential in the language. But, once a pruning model is learned this time is significantly reduced.
+\stitle{Language} \Cref{fig:microbenchmarks}b fixes the input to a single block, and evaluates the runtime based on the size of the language $|\Sigma|$.  Increasing the transformations increases the branching factor of the search problem. The search time is exponential in the language, however \sys's learning optimization can identify a pruning model that reduces the runtime to linear.
 
-\vspace{0.5em}\noindent \textbf{Quality Function Structure: } The nature of the quality function also affects the search time. Quality functions that couple multiple records together are harder to optimize (Figure \ref{fig:microbenchmarks}c).
-Consider a function that requires that two different records must have the same attribute values.
-More transformations have to be achieved in a particular sequence before an improvement in quality is observed. 
-We selected between 1-10 records at random in each block and created a quality function that coupled these records together.
-As the degree of coupling increases, the search time grows quite drastically.
-We repeated the same experiment where now coupling is correlated with the data, i.e., we sort one of the attributes and couple ``nearby'' records.
-\sys performs significantly better on this version of the task.
-This is due to the learned pruning in \sys.
-Sorting the attributes introduces a systematic correlation in the quality function.
-\sys quickly learns a model which learns this correlation and uses that to prune the search space.
+\stitle{Coupling in the Quality Function} The complexity of the quality function directly affects search time.  A cell-separable quality function is the simplest to optimize because each cell in the relation can be analyzed and cleaned in isolation.  In contrast, a quality function that couples multiple records together is more challenging to optimize because a longer sequence of transformation may be needed to sufficiently clean the records and improve the quality function.  
 
-To illustrate how the structure of the quality function affects accuracy, we incrementally make the FEC data cleaning problem more difficult.
-We first start with a single FD, then add another, then add rules to match entities, and then another FD.
-The quality function used is a sum of the quality functions for each of the constraints.
-As the quality function considers more and more constraints, it becomes harder to optimize.
+We evaluate this by artificially coupling between 1-10 records together, and creating a quality function that only improves when an attribute of the coupled records all have the same value.  We perform this coupling in two ways: {\it Random} couples randomly selected records, whereas {\it Correlated} first sorts the relation an attribute and couple records within a continuous range.  We expect that the random coupling requires individual cleaning operations for each record based on their IDs, whereas the correlated setting both allows \sys to exploit the correlated structure to learn effective pruning rules and \ewu{to clean the coupled records using a single cleaning operation}.  \Cref{fig:microbenchmarks}c shows that this is indeed the case when running \sys on a single fixed-size block. {\it Random} slows down exponentially with increased coupling, whereas {\it Correlated} increases linearly.
+
+% The nature of the quality function also affects the search time. Quality functions that couple multiple records together are harder to optimize (Figure \ref{fig:microbenchmarks}c).
+% Consider a function that requires that two different records must have the same attribute values.
+% More transformations have to be achieved in a particular sequence before an improvement in quality is observed. 
+% We selected between 1-10 records at random in each block and created a quality function that coupled these records together.
+% As the degree of coupling increases, the search time grows quite drastically.
+% We repeated the same experiment where now coupling is correlated with the data, i.e., we sort one of the attributes and couple ``nearby'' records.
+% \sys performs significantly better on this version of the task.
+% This is due to the learned pruning in \sys.
+% Sorting the attributes introduces a systematic correlation in the quality function.
+% \sys quickly learns a model which learns this correlation and uses that to prune the search space.
+
+\stitle{Quality Function Complexity} Finally, we incrementally increase the quality function's complexity and show haw it affects the cleaning accuracy.  We add the following constraints in sequence: one functional dependency (FD), a second FD, an entity resolution similarity rule, and a third FD.  We define the quality function as the sum of each constraint's quality function.   \Cref{fig:microbenchmarks}d shows that the F1 accuracy decreases as more constraints are added, however the F1 score is still above $75\%$.  
+
 
  \begin{figure*}[ht]
 \centering
@@ -160,7 +159,7 @@ As the quality function considers more and more constraints, it becomes harder t
  \label{fig:sensitivity}}
 \end{figure*}
 
-\subsubsection{Cleaning Generalization and Sensitivity}
+\subsubsection{Cleaning Generalization and Overfitting}
 An important characteristic of generating cleaning solutions as {\it programs} is that we can evaluate the program's robustness in terms of machine learning concepts such as overfitting and generalization.    To this end, we examine two concepts in the context of data cleaning: regularizaton and overfitting.  We also find that \sys's high level interface is helpful for iteratively tuning the cleaning process.
 
 \stitle{Regularization}  Misspecified quality functions can cause \sys to output poorly performing cleaning programs.  We simulate this by adding random noise to the output of the quality function. \Cref{fig:sensitivity}A plots the F1-score of \sys on the FEC experiment while varying the amount of noise.  As expected, the output program's F1-score rapidly degrades as the noise increases.  
