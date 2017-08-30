@@ -40,7 +40,7 @@ Outliers removed by \sys  improved the accuracy of a downstream predictive model
 But more importantly, this is achieved with a core codebase of 2000 lines of python code, and readily amenable to aggressive systems optimizations such as parallelization, caching, and incremental maintenance.
 In all of our experiments, we present the degree of parallelization need to match the the runtime of a state-of-the-art competitor.
 
-In short, \sys enables a cleaning system that allows the user's to articulate high level cleaning goals and automatically chooses a sequence of transformations.  
+In short, \sys enables a cleaning system that allows the user to articulate high level cleaning goals and automatically chooses a sequence of transformations.  
 It is important to note that there are clear limitations in this design.
 In some sense, \sys trades off generality for runtime, and it is clearly slower than specialized data cleaning without significantly more resources.
 Second, \sys sacrifices many of the provable properties achieved in specialized systems (e.g., constraint satisfaction). 
