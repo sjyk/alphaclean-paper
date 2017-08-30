@@ -98,6 +98,8 @@ The main insight in block-wise cleaning is that many errors are local to a small
 
 \stitle{Parallel Program Evaluation} It is clear that the candidate programs can be evaluated and pruning in a parallel fashion across multiple cores and multiple machines, and is one of the major innovations in modern planning systems.  However, unlike classic planning problems where communications are small due to the compact size of each state, \sys's state size is determined by the relation instance, and can lead to prohibitively high communication costs and memory caching requirements.   Section~\ref{s:parallel} describes how we manage the trade-offs when parallelizing \sys in shared memory and distributed settings.
 
+\stitle{Materialization} Since each candidate program $p' = p\circ T$ is the composition of a previous candidate program and a transformation, an obvious optimization is to materialize the output of $p(R)$ and incrementally compute $p'(R)$ as $T(p(R))$ over the materialized intermediate relation.  Although this works well in a single threaded setting, memory and communication challenges arise when combining materialization with parallelization (\Cref{s:parallel}).
+
 % Arbitrary constraint satisfaction problems are challenging because all variables can interact. While this is certainly the case for arbitrary quality functions, in many cases, data errors are localized. For example, replacing \texttt{San Francisc} with \texttt{San Francisco} has no effect on the records referring to \texttt{New York City}. The final class of optimizations are blocking rules which have been widely used in entity resolution systems:
 % \[\textsf{block}(Q, R, L) \mapsto \{R_1,...,R_k\} \]
 % For quality functions generated from dependencies, we can determine blocks analytically--looking at which violating tuples are linked through the constraint.
@@ -108,10 +110,5 @@ The main insight in block-wise cleaning is that many errors are local to a small
 % \stitle{Quality Estimation}  A large cost to the search algorithm stems from the need to execute the quality function over the output of each candidate program.  In some cases, it is possible to estimate the quality function without fully running the candidate program.  For instance, \ewu{foofah}.  Alternatively, it may be sufficient to run the candidate program over a sample of the input relation.  These are opportunities for future work.  \textbf{TODO}
 
 
-\begin{figure*}
-    \centering
-    \includegraphics[width=0.6\textwidth]{figures/distributed.png}
-    \caption{A schematic of the distributed search algorithm used to find a transformation sequence.    \label{fig:algo}}
-\end{figure*}
 
 

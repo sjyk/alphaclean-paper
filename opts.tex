@@ -1,35 +1,36 @@
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/distributed.pdf}
+    \caption{In each iteration, each worker starts with a subset of the priority queue, along with a set of data transformations from $\Sigma$ to generate candidate programs.  A series of synchronization points identify the globally top $\gamma$ candidates and redistributes them across the workers.   \label{fig:algo}}
+\end{figure*}
+
 \section{Search Optimizations}\label{s:opts}
 
-\subsection{Parallelism}\label{s:parallel}
-The best-first search algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Each expansion can be forked into its own thread. However, this actually makes the materialization described above a bit more challenging. We use Ray~\footnote{https://github.com/ray-project/ray} to implement the parallel search. 
+\subsection{Parallelization}\label{s:parallel}
+Composing and evaluating $Q(p'(R))$ is the single most expensive operation in the search procedure.   We now discuss how we parallelize its evaluation in shared memory and distributed settings, and the challenges when combining it with materialization.
 
-\subsubsection{Shared Memory Parallelization}
-The most straight-forward case is when we have access to low-latency shared memory between the expansion threads. In each expansion round, the main thread will assign each expansion node to workers and they will evaluate a given transformation. Each worker will make a copy of $o(R)$ (the node it is expanding) into shared memory. 
-If the expanded transformation is within $\gamma$ of the best current result, then it will update the copy, otherwise delete it. The point of synchronization is after all expansions are finished, and the main driver will flush all transformations less than $\gamma$ of the best result, and then assign new workers for the next round. 
+In a naive, shared-memory implementation, we execute all expansions for a given $p\in P$ in parallel.  We materialize $p(R)$ in memory, and evaluate the quality of each $p' = p\circ T\ |\ T \in \Sigma$ in parallel using a  thread pool.  Each thread drops a given $p'$ if its quality is lower than $\gamma\times$ the maximum quality from the previous \texttt{WHILE} iteration or the local thread.  At the end of the \texttt{WHILE} iteration, the threads synchronize to compute the highest quality, and flush the remaining candidates using the up-to-date quality value.  The output of each $p'(R)$ can be retained or discarded using any cache replacement policy.  Our implementation uses Ray~\cite{ray} to schedule and parallelize the tasks.
 
-\subsubsection{Distributed Parallelization}
-In cases, where we do not have access to low-latency shared memory, the communication costs of the above algorithm can be impractical. For each expanded node, the entire table has to be communicated to each of the distributed nodes.
-We consider a worker-driver model, and assume that the number of workers is $k$.
-A schematic diagram of the algorithm is shown in figure \ref{fig:algo}.
+\stitle{Distributed Parallelization}
+In the distributed setting, we do not have access to fast shared memory and the communication costs of sharing intermediate relations $p(R)$ can be impractical.  Thus, each worker is given a subset of candidate programs to locally evaluate and prune, and the main challenge is to reduce task skew through periodic rebalancing.  We use a 2-phase worker-driver model with $j$ workers (\Cref{fig:algo}).
 
-\vspace{0.25em} \noindent  \textbf{Initialization. } 
-Each worker has a copy of the base relation with no transformations.
-In the first round of expansion, the driver assigns to each worker $\frac{|L|}{k}$ expansions. 
-Each worker executes each of its assigned expansions, and stores the transformations that are within $\gamma$ of the best local result.
+\begin{itemize}[leftmargin=*, topsep=0mm, itemsep=0mm]
+\item \ititle{Computation} 
+  Let $P^{next} = P\times \Sigma$ be the set of candidate programs to evaluate in the current iteration of the search algorithm. In the first iteration, recall that $P = \{NOOP\}$, thus $P^{next} = \Sigma$ is the set of individual data transformation.   The driver assigns the input relation $R$ and $\frac{1}{j}$ of $P^{next}$ to each worker.  Each worker evaluates and keeps as results the candidate programs within $\gamma\times$ of the best worker-local quality.   The worker runs and caches the parents of its assigned candidate programs to speed up the quality function calculation.
 
-\vspace{0.25em} \noindent  \textbf{Reconciliation. }  Note that the global top-$\gamma$ set is a subset of the union of the all local results.
-The workers then communicate the quality of their best transformation. This can be used to reconcile the local materializations to only the global top-$\gamma$ set.
-This set is not necessarily balanced, e.g., one worker might have almost all of the top transformations.
-The next step is a balancing step, where each worker communicates the number of materialized expansions it currently stores.
-The workers with more than $\frac{|O|}{k}$ materialized expansions  randomly select ones to evict, and the driver re-distributes these to nodes with too few materialized expansions.
-This is done by communicated the transformation and the result is re-computed on the new worker.
-If $|O| < k$, then expansions are chosen at random to be replicated.
-The result of the reconciliation step is that all workers have an evenly distributed set of materialized expansions.
+\item  \ititle{Reconciliation}  Note that the worker-local results for each iteration are a superset of the global $\gamma$-best programs because the local best quality is $\le$ the global best.   Thus the workers synchronize with the driver to identify the global best candidate program, which is used to further prune each worker's set of candidate programs.  At this point, all candidate programs are within $\gamma$ of the globally best program so far, but their distribution across the workers can be highly skewed.  \sys performs a final balancing step, where each worker sends the number of un-pruned programs to the driver.  Workers with more than $\frac{|P|}{j}$ candidate programs redistribute the extras to workers with too few candidate programs.  If $|O| < k$, then expansions are chosen at random to be replicated.  Only the programs and their qualities are sent; the program results are re-computed by the receiving worker.  This step ensures that the candidate programs in the next iteration are evenly distributed across all workers.  
 
-\vspace{0.25em} \noindent  \textbf{Next Round. } After reconciliation, each worker is associated with a particular $o \in O$ (or a set of them). To parallelize, the driver must simply ensure that it assigns new expansions only to those workers that have materialized the parent.
-The algorithm then repeats, expanding each node locally, and then reconciles the results.
+% The workers then communicate the quality of their best transformation. This can be used to reconcile the local materializations to only the global top-$\gamma$ set.  This set is not necessarily balanced, e.g., one worker might have almost all of the top transformations.  The next step is a balancing step, where each worker communicates the number of materialized expansions it currently stores.  The workers with more than $\frac{|O|}{j}$ materialized expansions  randomly select ones to evict, and the driver re-distributes these to nodes with too few materialized expansions.  This is done by communicated the transformation and the result is re-computed on the new worker.  If $|O| < k$, then expansions are chosen at random to be replicated.  The result of the reconciliation step is that all workers have an evenly distributed set of materialized expansions.
 
+% \item \ititle{Next Round} After reconciliation, each worker is associated with a particular $o \in O$ (or a set of them). To parallelize, the driver must simply ensure that it assigns new expansions only to those workers that have materialized the parent.  The algorithm then repeats, expanding each node locally, and then reconciles the results.
+\end{itemize}
 
+% The best-first search algorithm also is amenable to parallelization. One can parallelize over the two inner for loops $O \times L$. Each expansion can be forked into its own thread. However, this actually makes the materialization described above a bit more challenging. We use Ray~\footnote{https://github.com/ray-project/ray} to implement the parallel search. 
+% 
+% \subsubsection{Shared Memory Parallelization}
+% The most straight-forward case is when we have access to low-latency shared memory between the expansion threads. In each expansion round, the main thread will assign each expansion node to workers and they will evaluate a given transformation. Each worker will make a copy of $o(R)$ (the node it is expanding) into shared memory. 
+% If the expanded transformation is within $\gamma$ of the best current result, then it will update the copy, otherwise delete it. 
+% 
 
 
 

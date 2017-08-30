@@ -9,7 +9,7 @@ $T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an in
 \[
 (T_i \circ T_j)(R) =  T_i(T_j(R))
 \]
-The composition of one or more data transformations is called a {\it cleaning program} $p$.   
+The composition of one or more data transformations is called a {\it cleaning program} $p$.   If $p = p' \circ T$, then let $p'$ be the parent of $p$; the parent of a single data transformation is a NOOP.  
 
 In practice, users will specify {\it transformation templates} $T(R, [\theta_1,\cdots,\theta_k])$, and every assignment to the parameters represents one possible transformation.  
 \begin{example}\label{ex1}
