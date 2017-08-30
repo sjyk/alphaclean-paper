@@ -153,18 +153,16 @@ The quality function measures the degree to which the table matches the human ex
 In these systems, the language is often highly restricted.
 For example, \cite{wrangler, jin2017foofah} use the domain-specific language proposed in~\cite{raman2001potter}.
 
-
-
-
 \subsection{Approach Overview and Challenges}
+
 Our problem formulation is a direct instance of a {\it planning} in AI~\cite{russell1995modern}, where an agent identifies a sequence of actions to achieve a goal.  In our setting, the agent (\sys) explores a state space ($\mathcal{R}$) from an initial state (the input relation) by following transitions (applying $T_i \in \Sigma$) such that the sequence of actions is valid (within $\Sigma^*$) and the quality of the final state ($Q(R_{final})$) is maximized.  
 
-For readers familiar with stochastic processes, this search problem is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$. MDPs are usually stochastic and as such the optimal solution in general is not a sequence but a function from states to actions.
+For readers familiar with stochastic processes, this search problem is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$.
 
 One may be hesitant in adopting our problem formulation because, although it is sufficiently general to model many existing data cleaning problems, such generality often comes at the expense of runtime performance.   The planning problem is APX-Hard, meaning there does not exist a polynomial time approximation unless P=NP.  For this reason, {\it the key technical challenge is to show that \sys can solve data cleaning problems with comparable run-time as existing specialized systems, and can be easily extended to support new optimizations.}
 
 \begin{theorem}[Hardness]
-\textsf{opt}(Q,R,L) is APX-hard
+\textsf{clean}(Q,R,L) is APX-hard
 \end{theorem}
 \begin{proof}[Sketch]
 Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
@@ -172,11 +170,18 @@ Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assi
 \end{proof}
 
 Despite the problem's worst-case complexity, 
-recent successes in similar planning problems---ranging from AlphaGo~\cite{silver2016mastering} to automatically playing Atari video games~\cite{mnih2015human} have shown that a prudent combination Machine Learning and distributed search can find practical solutions by leveraging the structure of the problem.  
-Not every problem instance is as pathological as the worst case complexity suggests, and there are many reasonable local optima. 
+recent successes in similar planning problems---ranging from AlphaGo~\cite{silver2016mastering} to automatically playing Atari video games~\cite{mnih2015human} have shown that a prudent combination Machine Learning and distributed search can find practical solutions by leveraging the structure of the problem. 
+Not every problem instance is as pathological as the worst case complexity suggests, and there are many reasonable local optima.
+
 \sys uses a standard state-space algorithm that incrementally grows a tree of operators and prunes paths below a threshold of the best path so far. 
 This algorithm is combined with an adaptive step that learns a search heuristic that adaptively prunes implausible search branches early.
 Additionally, we show that the basic algorithm is flexible enough to adapt existing data cleaning optimizations through pruning rules.  In addition, it is simple enough exploit the parallelism available on modern multi-core and cloud compute infrastructures.
+
+
+
+
+
+
 
 
 \if{0}
