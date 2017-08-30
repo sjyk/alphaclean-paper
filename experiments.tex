@@ -184,26 +184,18 @@ Indeed we find an interesting trade-off.  The 1 attribute predicate performed wo
 \subsubsection{Scaling}
 Finally, Figure \ref{fig:opt} illustrates the properties that affect \sys's scaling.  
 
-The experiments run on a cluster of 4 mx.large EC2 instances, so that \sys is parallelized in a distributed fashion across
+\stitle{Parallelization Optimizations} The experiments run on a cluster of 4 mx.large EC2 instances, and we treat each worker in a distributed (not shared-memory) fashion.   \Cref{fig:opt}a shows the benefits of the materialization and communication optimizations in \Cref{s:parallel}.  {\it No opt.} simply runs best-first search in parallel without any materialization; workers only synchronize at the end of an iteration by sending their top-$\gamma$ candidate programs to the driver, which prunes and redistributes the candidates in the next iteration.  {\it Cache} extends No opt by locally materializing parent programs, and {\it Cache+Comm} further adds the communication optimizations for distributed parallelization.   \ewu{make clear in figure that rebalancing is distirbuted}. 
 
-\Cref{fig:opt}a shows the benefits of the materialization and communication We compare three baseline implementations: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. 
-Figure \ref{fig:opt}A shows how the run time on the FEC dataset varies as a function of the number of worker threads on the cluster.
-With no optimizations and single threaded, the runtime is 4432 seconds.
-If we use the materialization strategy described in the paper, we can reduce this runtime by a factor of 10 (432 seconds) even on a single thread.
-As we scale out, we can further reduce this runtime.
-We see that the Cache+Comm strategy scales better (67 seconds for 64 workers) than the naive Cache only strategy (137 seconds for 64 workers).
-Interestingly enough, in relative terms, the vanilla best-first search strategy scales the best.
-This is because with no materialization the only communication is the description of which transformations to expand.
-However, it is slower by a factor of 10 in absolute numbers.
+The single threaded No Opt setting runs in $4432$s, and the materialization optimization reduces the runtime by $10\times$ to $432$s.   Scaling out improves all methods: at 64 workers, {\it Cache+Comm} takes 67s while {\it Cache} takes 137s.  Surprisingly, although {\it No Opt} with 64 workers is slower than {\it Cache+Comm} by $10\times$, it scales the best because it only synchronizes at the end of an iteration and only communicates candidate programs and their quality values.  In contrast, the alternative methods may communicate materialized relation instances.  \ewu{I think I missed this communication cost in the optimizations text}
 
-Figure \ref{fig:opt}B illustrates the effect of learning a search heuristic. As more blocks are cleaned, the system trains a classifier to prune implausible transformations in the future.
-This means that the search time spent on each block is greatly reduced (75\%). 
-Figure \ref{fig:opt}C shows that the best-first search is really the most practical algorithm in this setting, running order of magnitudes faster than a naive BFS or DFS.
+\stitle{Within-Block Learning} Although we have shown how learning reduce the overall search runtime, we show that learning also improves the search speed for individual blocks.  We run single-threaded \sys and report the time to evaluate each block.  \Cref{fig:opt}b shows the $i^{th}$ block that is processed on the x-axis, and the time to process it on the y-axis.   We see that as more blocks are cleaned, the learned pruning classifier is more effective at pruning implausible candidate programs.  This reduces the per-block search time by up to $75\%$.  
+
+\stitle{Search Algorithm Choice} \Cref{fig:opt}c shows that best-first search out-performs naive depth and breadth first search.  We also report \sys when $\gamma=\{0.5, 0.25\}$.  We see that as the block size increases, DFS and BFS quickly become infeasible, whereas \sys runs orders of magnitude more quickly.  In addition, reducing $\gamma$ improves the runtime, however can come at the cost of reduced accuracy by pruning locally sub-optimal but globally optimal candidate programs.  
 
  \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp6.png}
- \caption{(A) We compare three baseline implementations for scalability: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. (B) illustrates the effect of learning a search heuristic. (C) best-first search is much more effective than a BFS or DFS search.
+ \caption{(A) We compare three baseline implementations for scalability: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. (B) illustrates the effect of learning a search heuristic. (C) best-first search is much more effective than a BFS or DFS search. \ewu{Make sure to update the label for Best-First 2 and 4 to Gamma=0.5 and Gamma=0.25} \ewu{Fix all y-axes}
  \label{fig:opt}}
 \end{figure*}
 
