@@ -2,7 +2,7 @@
 Next, we present experimental results that suggest three main conclusions: (1) as a single framework, \sys can achieve parity in terms of accuracy with state-of-the-art approaches to a variety of different problems ranging from integrity constraint satisfaction, statistical data cleaning, and also data cleaning for machine learning, (2) it is possible to significantly reduce the runtime gap between \sys and specialized frameworks using simple pruning and distributed parallelization techniques, and (3) \sys enables automatic data cleaning for datasets containing a mixture of error types in an acceptable amount of time.  
 
 \subsection{Datasets and Cleaning Tasks}
-We list the main characteristics of the 7 experimental datasets, and describe them in more detail in our technical report~\cite{xxx}.
+We list the main characteristics of the 8 experimental datasets, and describe them in more detail in our technical report~\cite{xxx}.
 
 \stitle{Flight} The flight dataset~\cite{data-flights} contains arrival time, departure time, and gate information aggregated from 3 airline websites (AA, UA, Continental), 8 airport websites (e.g., SFO, DEN), and 27 third-party websites.
 There are 1200 flight departures and arrivals at airline hubs recorded from each source.  Each flight has a unique and globally consistent ID, and the task is to reconcile data from different sources using the functional dependency \texttt{ID$\rightarrow$ arrival, departure, gate information}.
@@ -25,6 +25,17 @@ There are 1200 flight departures and arrivals at airline hubs recorded from each
 % The training data is organized into ten minute EEG clips labeled "Preictal" for pre-seizure data segments, or "Interictal" for non-seizure data segments.  There are 2406 records each of which is a variable-length time-series of 16 attributes. We featurize this dataset into records of 32 attributes--the mean and variance over the length of the time-series.  This dataset primarily contains numerical outliers, the clips have spurious readings.
 
 \stitle{Stock} There are 1000 ticker symbols from 55 sources for every trading day in a month~\cite{data-flights}.  The cleaning task involves (1) integrating the schemas by matching attributes across the sources (e.g., `prev. close' vs `Previous Close'), and then (2) reconciling daily ticker values values using primary-key-based functional dependencies akin to the flight dataset.
+
+\stitle{Terrorism} The Global Terrorism Database~\cite{data-terrorism} is a dataset of around terrorist attacks scraped from news sources.  Each record contains the date, location, details about the attack, and the number of fatalities and injuries.  The dataset contains a mixture of data errors:
+(1) there are many duplicates for the same terrorist incident,
+(2) many missing values in the fatalities and injuries attributes are encoded as zeros, which overlaps with attacks that didnot have any fatalities/injuries, and
+(3) the location attributes are inconsistently encoded.  
+We used the dataset from 1970, and there are around $200$ records.  
+
+We downloaded this dataset and sought to understand whether terrorist attacks have become more lethal than they were in the 1970s.  To do so, we hand cleaned the records to create a gold standard.  It turns out that, in this dataset, attacks have become more lethal, but fewer in number than 50 years ago.  This task was intentionally open-ended to represent the nature of the iterative analysis process.
+
+
+
 
 % dataset considers data for 1000 ticker symbols from 55 sources that covers key trading metrics for every trading day in a month.  The challenge is to integrate the schema of these different sources. For example, in one source the closing price is denoted by 'Prev. Close' and in another it is 'Previous Close'.  Once the schema is consistent, there is a further data cleaning problem, where we would like to reconcile the values from different sources. This can be achieved with a similar functional dependency relationship as described for the flight datasets.  
 
@@ -125,22 +136,20 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
 \end{figure*}
 
 \subsection{Combinations of Errors}
-In the next experiment, we consider a dataset that contains many different error types.
-The Global Terrorism Database is a dataset of terrorist attacks scraped from news sources since 1970.
-Each record contains the date, location, details about the attack, and the number of fatalities and injuries.
+In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to evaluate \sys's support of multiple error classes.  
 
-This dataset contains a number of inconsistencies that make analysis difficult.
-(1) It has a substantial number of duplicates, where records that refer to the same terrorist incident are marked as separate records.
-(2) A number of missing values in the fatalities and injuries numbers in the dataset are encoded as zeros.
-(3) There are inconsistencies in the location information.
+\stitle{Baselines} We hand-coded an entity matching (EM) algorithm that uses blocking to handle duplicate records.  We modeled the missing values as an outlier cleaning problem and used the dBoost~\cite{} library (dBoost). We modeled the location inconsistencies as a functional dependency problem and implemented a restricted chase algorithm (Chase).  Finally, we ran EM, dBoost, and Chase serially on the dataset (Combined).
 
-Error type (1) is best handled with a blocking and matching entity matching approach. Error type (2) is best handled with an outlier detector, where outliers are replaced with null values. Error type (3) is best addressed by a Functional Dependency.
-Figure \ref{exp7a}a shows how each individual system is not sufficient to clean the data.
-For (1) and (3), we coded a specialized algorithm in Python to address those errors.
-For (2), we used the dBoost library.
-\sys can model all of these in a single framework and can get the best combined performance.
-\sys achieves the highest precision and recall.
-\sys also achieves a competitive runtime to using all of the different system and accounting for data transfer time between them.
+\stitle{Results} \Cref{exp7a}a shows that combining and cleaning all three classes of errors within the same \sys framework (AC) achieves higher precision and recall than all baselines.  \ewu{In fact, the combined baselines still does not achieve \sys's level of accuracy because the cleaning operations need to be interleaved differently for different blocks.}   Although \sys is slower than any individual baseline, parallelizing \sys to \ewu{XXX} threads is faster than the combined baseline by \ewu{FOO$\times$}. 
+
+
+% Error type (1) is best handled with a blocking and matching entity matching approach. Error type (2) is best handled with an outlier detector, where outliers are replaced with null values. Error type (3) is best addressed by a Functional Dependency.
+% Figure \ref{exp7a}a shows how each individual system is not sufficient to clean the data.
+% For (1) and (3), we coded a specialized algorithm in Python to address those errors.
+% For (2), we used the dBoost library.
+% \sys can model all of these in a single framework and can get the best combined performance.
+% \sys achieves the highest precision and recall.
+% \sys also achieves a competitive runtime to using all of the different system and accounting for data transfer time between them.
 
 \begin{figure}
     \centering
