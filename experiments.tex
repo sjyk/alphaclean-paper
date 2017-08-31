@@ -44,8 +44,7 @@ We downloaded this dataset and sought to understand whether terrorist attacks ha
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp1.png}
-    \caption{We compare \sys to alternative denial constraint systems on a dataset of flight arrival and departure times scraped from a variety of different sources. AC denotes \sys without any learned pruning and AC+L denotes \sys with pruning.
-    \sys matches the accuracy of these systems and can be parallelized to match the runtime of these systems as well. Learning actually allows \sys to scale sub-linearly, i.e., as it sees more data it learns more precise pruning rules.\label{exp1a}}
+    \caption{\small Comparison with denial constraint systems on the Flight dataset.  (A) \sys (AC) matches or exceeds the accuracy of the specialized systems.  (B) The structure of the data errors, along the learning and parallelization (AC+L x64) lets \sys scale sub-linearly and outperform all but HoloClean's reported runtimes.  \label{exp1a}}
 \end{figure}
 
 \subsection{Comparisons with Specialized Cleaning}
@@ -60,29 +59,33 @@ Denial constraints express a wide range of integrity constraints and form the ba
 
 \stitle{Results: } Figure \ref{exp1a}a shows the precision and recall of each approaches based on known ground truth. \sys matches or beats the accuracy of the baselines, however its runtime (AC) without any learning scales poorly compared to alternatives (\Cref{exp1b}b).  Using learning (AC+L) shows performance on par with LLunatic, and parallelization on 64 threads is comparable to Holoclean's reported runtime. The results suggest that learning exhibits sublinear scaling due to \sys learning more effective pruning rules as it sees more data.  These performance gains are at the expense of slightly reduced accuracy. 
 
-We also evaluated \sys (single threaded, without learning) on the FEC, Malasakit, and Physician datasets, and summarize the results below:
-\begin{table}[ht]
-\footnotesize
-\small
-\centering
-\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\hline
- & \#rows & \#cols & Precision & Recall & Runtime \\
-\hline
-\hline
-FEC	&6M&18&0.94&	0.68&	5hrs\\
-\hline
-Malasakit &1493& 15& 1.0 & 0.85& 0.39hrs\\
-\hline
-Physican	&37k&10&1.0&0.84& 3.2hrs\\
-\hline
-\end{tabular}
-\end{table}
+We also evaluated \sys (single threaded, without learning) on the FEC, Malasakit, and Physician datasets.  Their precision, recall, and runtimes are as follows: 
+FEC: $94\%$ prec, $68\%$ rec, $5$hrs; 
+Malasakit: $100\%$ prec, $85\%$ rec, $0.39$hrs;
+Physician: $100\%$ prec, $84\%$, $3.4$hrs.
+
+% \begin{table}[ht]
+% \footnotesize
+% \small
+% \centering
+% \begin{tabular}{|l|r|r|r|r|r|r|r|}
+% \hline
+%  & \#rows & \#cols & Precision & Recall & Runtime \\
+% \hline
+% \hline
+% FEC	&6M&18&0.94&	0.68&	5hrs\\
+% \hline
+% Malasakit &1493& 15& 1.0 & 0.85& 0.39hrs\\
+% \hline
+% Physican	&37k&10&1.0&0.84& 3.2hrs\\
+% \hline
+% \end{tabular}
+% \end{table}
 
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp2.png}
-    \caption{We evaluate \sys on a quantitative data cleaning task by cleaning a dataset prior to training a random forest classifier model. The system is allowed to clip outliers or set them to a default value. (A) reports the resulting classifier accuracy improvements as compared to outlier detection algorithms (MCD,dBoost) and \sys with only a single transform template (DO).  (B) reports the runtimes.  \label{exp2a}}
+    \caption{\small Quantitative data cleaning on census and EEG datasets for a classification application.  \sys tranformation can clip outliers or set them to a default value. (A) \sys ha higher accuracy than outlier detection algorithms (MCD, dBoost), and \sys with a single transform template (DO).  (B) Optimizations improve \sys runtime by over an order of magnitude.  \label{exp2a}}
 \end{figure}
 
 \subsubsection{Quantitative Data Cleaning}
@@ -131,7 +134,7 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
 \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp4.png}
- \caption{(A) illustrates how the performance of \sys is affected block size, larger blocks require a longer search time, (B) shows how the search time scales as a function of the support of the transformation language, and learning can significantly reduce this time, (C) quality functions that have unpredictable couplings between multiple records together are harder to optimize, (D) \sys can handle compositions of multiple error types.
+ \caption{\small (A) The degree of block-wise partitioning directly affects search time, (B) increasing the transformation language $\Sigma$ exponentially increases the search time, but learning is very effective at pruning the increased search space, (C) quality functions that couple errors between random records are significantly harder to optimize, (D) \sys degrades gracefully when adding irrelevant error types to the problem.  
  \label{fig:microbenchmarks}}
 \end{figure*}
 
@@ -154,7 +157,7 @@ In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to ev
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp7.png}
-    \caption{\small We analyze a dataset of terrorist attacks scraped from news sources since 1970. (A) A unified cleaning framework outperforms individual cleaning approaches and even a serial combination.  (B) \sys is easily parallelized to \ewu{XXX} threads to outperform the combined baselines.  \label{exp7a}}
+    \caption{\small The terrorism dataset contains 3 classe of errors. (A) A unified cleaning framework outperforms individual cleaning approaches and even a serial combination.  (B) \sys is easily parallelized to \ewu{XXX} threads to outperform the combined baselines.  \label{exp7a}}
 \end{figure}
 
 \subsection{\sys In Depth}
@@ -188,7 +191,7 @@ We evaluate this by artificially coupling between 1-10 records together, and cre
  \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp5.png}
- \caption{ (A) We inject noise into the quality function to simulate a ``mis-specified'' objective and plot the F1 accuracy of \sys for different settings of the edit penalty, (B-C) overly specific rules may not apply to future data, and overly general rules, might introduce unwanted side-effects. \ewu{Change titles to TRaining and Test Accuracy}
+ \caption{\small (A) Regularization by increasing an editCost penalty makes \sys more robust to noisy (mis-specified) quality functions, (B-C) overly expressive transformation templates can lead to overfitting (2 attr) or an infeasibly large search space (3 attr).  
  \label{fig:sensitivity}}
 \end{figure*}
 
@@ -228,6 +231,9 @@ The single threaded No Opt setting runs in $4432$s, and the materialization opti
  \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp6.png}
- \caption{(A) We compare three baseline implementations for scalability: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. (B) illustrates the effect of learning a search heuristic. (C) best-first search is much more effective than a BFS or DFS search. \ewu{Make sure to update the label for Best-First 2 and 4 to Gamma=0.5 and Gamma=0.25} \ewu{Fix all y-axes}
+ \caption{\small 
+   (A) Both the materialization (Cache) and distributed communication (Comm) optimizations contribute to improved scale-out runtimes.
+   (B) The learned pruning rules improve the search costs for each subsequent block-wise partition.  
+   (C) Best-first search is better than BFS and DFS; reducing $\gamma$ prunes more candidates at the expense of lower accuracy.   \ewu{Make sure to update the label for Best-First 2 and 4 to Gamma=0.5 and Gamma=0.25} \ewu{Fix all y-axes}
  \label{fig:opt}}
 \end{figure*}
