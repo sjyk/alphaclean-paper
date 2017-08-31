@@ -2,7 +2,7 @@
 Next, we present experimental results that suggest three main conclusions: (1) as a single framework, \sys can achieve parity in terms of accuracy with state-of-the-art approaches to a variety of different problems ranging from integrity constraint satisfaction, statistical data cleaning, and also data cleaning for machine learning, (2) it is possible to significantly reduce the runtime gap between \sys and specialized frameworks using simple pruning and distributed parallelization techniques, and (3) \sys enables automatic data cleaning for datasets containing a mixture of error types in an acceptable amount of time.  
 
 \subsection{Datasets and Cleaning Tasks}
-We list the main characteristics of the 7 experimental datasets, and describe them in more detail in our technical report~\cite{xxx}.
+We list the main characteristics of the 8 experimental datasets, and describe them in more detail in our technical report~\cite{xxx}.
 
 \stitle{Flight} The flight dataset~\cite{data-flights} contains arrival time, departure time, and gate information aggregated from 3 airline websites (AA, UA, Continental), 8 airport websites (e.g., SFO, DEN), and 27 third-party websites.
 There are 1200 flight departures and arrivals at airline hubs recorded from each source.  Each flight has a unique and globally consistent ID, and the task is to reconcile data from different sources using the functional dependency \texttt{ID$\rightarrow$ arrival, departure, gate information}.
@@ -26,6 +26,17 @@ There are 1200 flight departures and arrivals at airline hubs recorded from each
 
 \stitle{Stock} There are 1000 ticker symbols from 55 sources for every trading day in a month~\cite{data-flights}.  The cleaning task involves (1) integrating the schemas by matching attributes across the sources (e.g., `prev. close' vs `Previous Close'), and then (2) reconciling daily ticker values values using primary-key-based functional dependencies akin to the flight dataset.
 
+\stitle{Terrorism} The Global Terrorism Database~\cite{data-terrorism} is a dataset of around terrorist attacks scraped from news sources.  Each record contains the date, location, details about the attack, and the number of fatalities and injuries.  The dataset contains a mixture of data errors:
+(1) there are many duplicates for the same terrorist incident,
+(2) many missing values in the fatalities and injuries attributes are encoded as zeros, which overlaps with attacks that didnot have any fatalities/injuries, and
+(3) the location attributes are inconsistently encoded.  
+We used the dataset from 1970, and there are around $200$ records.  
+
+We downloaded this dataset and sought to understand whether terrorist attacks have become more lethal than they were in the 1970s.  To do so, we hand cleaned the records to create a gold standard.  It turns out that, in this dataset, attacks have become more lethal, but fewer in number than 50 years ago.  This task was intentionally open-ended to represent the nature of the iterative analysis process.
+
+
+
+
 % dataset considers data for 1000 ticker symbols from 55 sources that covers key trading metrics for every trading day in a month.  The challenge is to integrate the schema of these different sources. For example, in one source the closing price is denoted by 'Prev. Close' and in another it is 'Previous Close'.  Once the schema is consistent, there is a further data cleaning problem, where we would like to reconcile the values from different sources. This can be achieved with a similar functional dependency relationship as described for the flight datasets.  
 
 
@@ -33,8 +44,7 @@ There are 1200 flight departures and arrivals at airline hubs recorded from each
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp1.png}
-    \caption{We compare \sys to alternative denial constraint systems on a dataset of flight arrival and departure times scraped from a variety of different sources. AC denotes \sys without any learned pruning and AC+L denotes \sys with pruning.
-    \sys matches the accuracy of these systems and can be parallelized to match the runtime of these systems as well. Learning actually allows \sys to scale sub-linearly, i.e., as it sees more data it learns more precise pruning rules.\label{exp1a}}
+    \caption{\small Comparison with denial constraint systems on the Flight dataset.  (A) \sys (AC) matches or exceeds the accuracy of the specialized systems.  (B) The structure of the data errors, along the learning and parallelization (AC+L x64) lets \sys scale sub-linearly and outperform all but HoloClean's reported runtimes.  \label{exp1a}}
 \end{figure}
 
 \subsection{Comparisons with Specialized Cleaning}
@@ -49,29 +59,33 @@ Denial constraints express a wide range of integrity constraints and form the ba
 
 \stitle{Results: } Figure \ref{exp1a}a shows the precision and recall of each approaches based on known ground truth. \sys matches or beats the accuracy of the baselines, however its runtime (AC) without any learning scales poorly compared to alternatives (\Cref{exp1b}b).  Using learning (AC+L) shows performance on par with LLunatic, and parallelization on 64 threads is comparable to Holoclean's reported runtime. The results suggest that learning exhibits sublinear scaling due to \sys learning more effective pruning rules as it sees more data.  These performance gains are at the expense of slightly reduced accuracy. 
 
-We also evaluated \sys (single threaded, without learning) on the FEC, Malasakit, and Physician datasets, and summarize the results below:
-\begin{table}[ht]
-\footnotesize
-\small
-\centering
-\begin{tabular}{|l|r|r|r|r|r|r|r|}
-\hline
- & \#rows & \#cols & Precision & Recall & Runtime \\
-\hline
-\hline
-FEC	&6M&18&0.94&	0.68&	5hrs\\
-\hline
-Malasakit &1493& 15& 1.0 & 0.85& 0.39hrs\\
-\hline
-Physican	&37k&10&1.0&0.84& 3.2hrs\\
-\hline
-\end{tabular}
-\end{table}
+We also evaluated \sys (single threaded, without learning) on the FEC, Malasakit, and Physician datasets.  Their precision, recall, and runtimes are as follows: 
+FEC: $94\%$ prec, $68\%$ rec, $5$hrs; 
+Malasakit: $100\%$ prec, $85\%$ rec, $0.39$hrs;
+Physician: $100\%$ prec, $84\%$, $3.4$hrs.
+
+% \begin{table}[ht]
+% \footnotesize
+% \small
+% \centering
+% \begin{tabular}{|l|r|r|r|r|r|r|r|}
+% \hline
+%  & \#rows & \#cols & Precision & Recall & Runtime \\
+% \hline
+% \hline
+% FEC	&6M&18&0.94&	0.68&	5hrs\\
+% \hline
+% Malasakit &1493& 15& 1.0 & 0.85& 0.39hrs\\
+% \hline
+% Physican	&37k&10&1.0&0.84& 3.2hrs\\
+% \hline
+% \end{tabular}
+% \end{table}
 
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp2.png}
-    \caption{We evaluate \sys on a quantitative data cleaning task by cleaning a dataset prior to training a random forest classifier model. The system is allowed to clip outliers or set them to a default value. (A) reports the resulting classifier accuracy improvements as compared to outlier detection algorithms (MCD,dBoost) and \sys with only a single transform template (DO).  (B) reports the runtimes.  \label{exp2a}}
+    \caption{\small Quantitative data cleaning on census and EEG datasets for a classification application.  \sys tranformation can clip outliers or set them to a default value. (A) \sys ha higher accuracy than outlier detection algorithms (MCD, dBoost), and \sys with a single transform template (DO).  (B) Optimizations improve \sys runtime by over an order of magnitude.  \label{exp2a}}
 \end{figure}
 
 \subsubsection{Quantitative Data Cleaning}
@@ -108,7 +122,7 @@ Vanilla \sys (AC) is nearly $10\times$ slower than MCD, but the adding learning 
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp3.png}
-    \caption{The stock dataset requires both schema integration (it contains data from 55 different sources) and functional dependency fixes.  Performing schema integration (SI) or data cleaning by enforcing functional dependencies (DC) in isolation results in poor accuracy.  \sys supports both types of errors, produces higher recall fixes, and can run comparably as fast as DC.  \label{exp3a}}
+    \caption{\small Schema integration and functional dependency errors in the stock dataset.  Cleaning schema integration (SI) or functional dependencies (DC) in isolation results in high precision but poor recall.  \sys cleans both types of errors with higher recall, and is as fast as DC.  \label{exp3a}}
 \end{figure}
 
 \begin{figure}[ht]
@@ -126,33 +140,37 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
 \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp4.png}
- \caption{(A) illustrates how the performance of \sys is affected block size, larger blocks require a longer search time, (B) shows how the search time scales as a function of the support of the transformation language, and learning can significantly reduce this time, (C) quality functions that have unpredictable couplings between multiple records together are harder to optimize, (D) \sys can handle compositions of multiple error types.
+ \caption{\small (A) The degree of block-wise partitioning directly affects search time, (B) increasing the transformation language $\Sigma$ exponentially increases the search time, but learning is very effective at pruning the increased search space, (C) quality functions that couple errors between random records are significantly harder to optimize, (D) \sys degrades gracefully when adding irrelevant error types to the problem.  
  \label{fig:microbenchmarks}}
 \end{figure*}
 
-\subsection{Combinations of Errors}
-In the next experiment, we consider a dataset that contains many different error types.
-The Global Terrorism Database is a dataset of terrorist attacks scraped from news sources since 1970.
-Each record contains the date, location, details about the attack, and the number of fatalities and injuries.
+\subsection{Mixing Error Classes}
+In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to evaluate \sys's support of multiple error classes.  
 
-This dataset contains a number of inconsistencies that make analysis difficult.
-(1) It has a substantial number of duplicates, where records that refer to the same terrorist incident are marked as separate records.
-(2) A number of missing values in the fatalities and injuries numbers in the dataset are encoded as zeros.
-(3) There are inconsistencies in the location information.
+\stitle{Baselines} We hand-coded an entity matching (EM) algorithm that uses blocking to handle duplicate records.  We modeled the missing values as an outlier cleaning problem and used the dBoost~\cite{} library (dBoost). We modeled the location inconsistencies as a functional dependency problem and implemented a restricted chase algorithm (Chase).  Finally, we ran EM, dBoost, and Chase serially on the dataset (Combined).
 
-Error type (1) is best handled with a blocking and matching entity matching approach. Error type (2) is best handled with an outlier detector, where outliers are replaced with null values. Error type (3) is best addressed by a Functional Dependency.
-Figure \ref{exp7a}a shows how each individual system is not sufficient to clean the data.
-For (1) and (3), we coded a specialized algorithm in Python to address those errors.
-For (2), we used the dBoost library.
-\sys can model all of these in a single framework and can get the best combined performance.
-\sys achieves the highest precision and recall.
-\sys also achieves a competitive runtime to using all of the different system and accounting for data transfer time between them.
+\stitle{Results} \Cref{exp7a}a shows that combining and cleaning all three classes of errors within the same \sys framework (AC) achieves higher precision and recall than all baselines.  \ewu{In fact, the combined baselines still does not achieve \sys's level of accuracy because the cleaning operations need to be interleaved differently for different blocks.}   Although \sys is slower than any individual baseline, parallelizing \sys to \ewu{XXX} threads is faster than the combined baseline by \ewu{FOO$\times$}. 
+
+
+% Error type (1) is best handled with a blocking and matching entity matching approach. Error type (2) is best handled with an outlier detector, where outliers are replaced with null values. Error type (3) is best addressed by a Functional Dependency.
+% Figure \ref{exp7a}a shows how each individual system is not sufficient to clean the data.
+% For (1) and (3), we coded a specialized algorithm in Python to address those errors.
+% For (2), we used the dBoost library.
+% \sys can model all of these in a single framework and can get the best combined performance.
+% \sys achieves the highest precision and recall.
+% \sys also achieves a competitive runtime to using all of the different system and accounting for data transfer time between them.
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{exp/exp7.png}
+    \caption{\small The terrorism dataset contains 3 classe of errors. (A) A unified cleaning framework outperforms individual cleaning approaches and even a serial combination.  (B) \sys is easily parallelized to \ewu{XXX} threads to outperform the combined baselines.  \label{exp7a}}
+\end{figure}
 
 \subsection{\sys In Depth}
-This subsection studies the key parameters that affect \sys's accuracy and runtime, the robustness of its cleaning programs, and its algorithmic properties.
+This subsection uses the FEC setup to study the parameters that affect \sys's accuracy and runtime, the robustness of its cleaning programs, and its algorithmic properties.
 
 \subsubsection{Algorithmic Sensitivity}
-We use the FEC experiment setup to study how \sys's system parameters affect its ability to quickly generate cleaning programs. 
 
 \stitle{Block-wise Cleaning} Partitioning the dataset into smaller blocks effectively reduces the problem complexity.  This can have tremendous performance benefits when each block exhibits very few errors that are independent of the other blocks.  \Cref{fig:microbenchmarks}a shows the performance benefits when varying the block size; we define the blocks by partitioning on three different attributes that have different domain sizes.  Reducing the block size directly improves the runtime; the search is effectively non-terminating when blocking is not used.    
 
@@ -179,7 +197,7 @@ We evaluate this by artificially coupling between 1-10 records together, and cre
  \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp5.png}
- \caption{ (A) We inject noise into the quality function to simulate a ``mis-specified'' objective and plot the F1 accuracy of \sys for different settings of the edit penalty, (B-C) overly specific rules may not apply to future data, and overly general rules, might introduce unwanted side-effects. \ewu{Change titles to TRaining and Test Accuracy}
+ \caption{\small (A) Regularization by increasing an editCost penalty makes \sys more robust to noisy (mis-specified) quality functions, (B-C) overly expressive transformation templates can lead to overfitting (2 attr) or an infeasibly large search space (3 attr).  
  \label{fig:sensitivity}}
 \end{figure*}
 
@@ -206,7 +224,6 @@ Indeed we find an interesting trade-off.  The 1 attribute predicate performed wo
 
 
 \subsubsection{Scaling}
-Finally, Figure \ref{fig:opt} illustrates the properties that affect \sys's scaling.  
 
 \stitle{Parallelization Optimizations} The experiments run on a cluster of 4 mx.large EC2 instances, and we treat each worker in a distributed (not shared-memory) fashion.   \Cref{fig:opt}a shows the benefits of the materialization and communication optimizations in \Cref{s:parallel}.  {\it No opt.} simply runs best-first search in parallel without any materialization; workers only synchronize at the end of an iteration by sending their top-$\gamma$ candidate programs to the driver, which prunes and redistributes the candidates in the next iteration.  {\it Cache} extends No opt by locally materializing parent programs, and {\it Cache+Comm} further adds the communication optimizations for distributed parallelization.   \ewu{make clear in figure that rebalancing is distirbuted}. 
 
@@ -219,6 +236,9 @@ The single threaded No Opt setting runs in $4432$s, and the materialization opti
  \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp6.png}
- \caption{(A) We compare three baseline implementations for scalability: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. (B) illustrates the effect of learning a search heuristic. (C) best-first search is much more effective than a BFS or DFS search. \ewu{Make sure to update the label for Best-First 2 and 4 to Gamma=0.5 and Gamma=0.25} \ewu{Fix all y-axes}
+ \caption{\small 
+   (A) Both the materialization (Cache) and distributed communication (Comm) optimizations contribute to improved scale-out runtimes.
+   (B) The learned pruning rules improve the search costs for each subsequent block-wise partition.  
+   (C) Best-first search is better than BFS and DFS; reducing $\gamma$ prunes more candidates at the expense of lower accuracy.   \ewu{Make sure to update the label for Best-First 2 and 4 to Gamma=0.5 and Gamma=0.25} \ewu{Fix all y-axes}
  \label{fig:opt}}
 \end{figure*}
