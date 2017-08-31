@@ -125,6 +125,12 @@ Vanilla \sys (AC) is nearly $10\times$ slower than MCD, but the adding learning 
     \caption{\small Schema integration and functional dependency errors in the stock dataset.  Cleaning schema integration (SI) or functional dependencies (DC) in isolation results in high precision but poor recall.  \sys cleans both types of errors with higher recall, and is as fast as DC.  \label{exp3a}}
 \end{figure}
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\columnwidth]{exp/exp7.png}
+    \caption{The Global Terrorism Database is a dataset of terrorist attacks scraped from news sources since 1970. (A) Shows that \sys can integrate many different forms of cleaning that were previously handled by disparate systems, (B) \sys achieves a competitive runtime to using all of the different system and accounting for data transfer time between them. \label{exp7a}}
+\end{figure}
+
 \subsubsection{Schema Integration}
 We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 different sources that contains a mixture of schema integration and functional dependency errors.
 
@@ -153,6 +159,7 @@ In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to ev
 % \sys can model all of these in a single framework and can get the best combined performance.
 % \sys achieves the highest precision and recall.
 % \sys also achieves a competitive runtime to using all of the different system and accounting for data transfer time between them.
+
 
 \begin{figure}
     \centering
