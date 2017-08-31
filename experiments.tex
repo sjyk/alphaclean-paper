@@ -71,7 +71,7 @@ Physican	&37k&10&1.0&0.84& 3.2hrs\\
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp2.png}
-    \caption{\ewu{REMOVE NO CLEAN FROM PLOT} We evaluate \sys on a quantitative data cleaning task by cleaning a dataset prior to training a random forest classifier model. The system is allowed to clip outliers or set them to a default value. (A) reports the resulting classifier accuracy improvements as compared to outlier detection algorithms (MCD,dBoost) and \sys with only a single transform template (DO).  (B) reports the runtimes.  \label{exp2a}}
+    \caption{We evaluate \sys on a quantitative data cleaning task by cleaning a dataset prior to training a random forest classifier model. The system is allowed to clip outliers or set them to a default value. (A) reports the resulting classifier accuracy improvements as compared to outlier detection algorithms (MCD,dBoost) and \sys with only a single transform template (DO).  (B) reports the runtimes.  \label{exp2a}}
 \end{figure}
 
 \subsubsection{Quantitative Data Cleaning}
@@ -124,13 +124,37 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
  \label{fig:microbenchmarks}}
 \end{figure*}
 
+\subsection{Combinations of Errors}
+In the next experiment, we consider a dataset that contains many different error types.
+The Global Terrorism Database is a dataset of terrorist attacks scraped from news sources since 1970.
+Each record contains the date, location, details about the attack, and the number of fatalities and injuries.
+
+This dataset contains a number of inconsistencies that make analysis difficult.
+(1) It has a substantial number of duplicates, where records that refer to the same terrorist incident are marked as separate records.
+(2) A number of missing values in the fatalities and injuries numbers in the dataset are encoded as zeros.
+(3) There are inconsistencies in the location information.
+
+Error type (1) is best handled with a blocking and matching entity matching approach. Error type (2) is best handled with an outlier detector, where outliers are replaced with null values. Error type (3) is best addressed by a Functional Dependency.
+Figure \ref{exp7a}a shows how each individual system is not sufficient to clean the data.
+For (1) and (3), we coded a specialized algorithm in Python to address those errors.
+For (2), we used the dBoost library.
+\sys can model all of these in a single framework and can get the best combined performance.
+\sys achieves the highest precision and recall.
+\sys also achieves a competitive runtime to using all of the different system and accounting for data transfer time between them.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{exp/exp7.png}
+    \caption{The Global Terrorism Database is a dataset of terrorist attacks scraped from news sources since 1970. (A) Shows that \sys can integrate many different forms of cleaning that were previously handled by disparate systens, (B) \sys achieves a competitive runtime to using all of the different system and accounting for data transfer time between them. \label{exp7a}}
+\end{figure}
+
 \subsection{\sys In Depth}
 This subsection studies the key parameters that affect \sys's accuracy and runtime, the robustness of its cleaning programs, and its algorithmic properties.
 
 \subsubsection{Algorithmic Sensitivity}
 We use the FEC experiment setup to study how \sys's system parameters affect its ability to quickly generate cleaning programs. 
 
-\stitle{Block-wise CLeaning} Partitioning the dataset into smaller blocks effectively reduces the problem complexity.  This can have tremendous performance benefits when each block exhibits very few errors that are independent of the other blocks.  \Cref{fig:microbenchmarks}a shows the performance benefits when varying the block size; we define the blocks by partitioning on three different attributes that have different domain sizes.  Reducing the block size directly improves the runtime; the search is effectively non-terminating when blocking is not used.    
+\stitle{Block-wise Cleaning} Partitioning the dataset into smaller blocks effectively reduces the problem complexity.  This can have tremendous performance benefits when each block exhibits very few errors that are independent of the other blocks.  \Cref{fig:microbenchmarks}a shows the performance benefits when varying the block size; we define the blocks by partitioning on three different attributes that have different domain sizes.  Reducing the block size directly improves the runtime; the search is effectively non-terminating when blocking is not used.    
 
 \stitle{Language} \Cref{fig:microbenchmarks}b fixes the input to a single block, and evaluates the runtime based on the size of the language $|\Sigma|$.  Increasing the transformations increases the branching factor of the search problem. The search time is exponential in the language, however \sys's learning optimization can identify a pruning model that reduces the runtime to linear.
 
@@ -198,4 +222,3 @@ The single threaded No Opt setting runs in $4432$s, and the materialization opti
  \caption{(A) We compare three baseline implementations for scalability: (No opt.) a vanilla best-first search, (Cache) best-first search + materialization, (Cache+Comm) best-first search and reducing the communication with the algorithm described in the paper. (B) illustrates the effect of learning a search heuristic. (C) best-first search is much more effective than a BFS or DFS search. \ewu{Make sure to update the label for Best-First 2 and 4 to Gamma=0.5 and Gamma=0.25} \ewu{Fix all y-axes}
  \label{fig:opt}}
 \end{figure*}
-
