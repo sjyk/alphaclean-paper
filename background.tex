@@ -5,7 +5,7 @@ First, we overview the basic formalism of \sys and present its relationship to r
 We focus on data transformations that concern a single relational table. 
 Let $R$ be a relation over a set of attributes $A$, and let $\mathcal{R}$ denote the set of all possible relations over $A$.
 Let $r.a$ be the attribute value of $a \in A$ for row $r \in R$.
-$T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an input relation instance $R \in \mathcal{R}$ to a new (possibly cleaner) instance $R' \in \mathcal{R}$ that adheres to the same schema.  For instance, ``replace all \texttt{city} attribute values equal to {\it San Francis} with {\it SF}'' may be one data transformation, while ``delete the $10^{th}$ record'' may be another.   Data transformations can be composed using the binary operator $\circ$:
+$T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an input relation instance $R \in \mathcal{R}$ to a new (possibly cleaner) instance $R' \in \mathcal{R}$ that adheres to the same schema.  For instance, ``replace all \texttt{city} attribute values equal to {\it San Francisco} with {\it SF}'' may be one data transformation, while ``delete the $10^{th}$ record'' may be another.   Data transformations can be composed using the binary operator $\circ$:
 \[
 (T_i \circ T_j)(R) =  T_i(T_j(R))
 \]
