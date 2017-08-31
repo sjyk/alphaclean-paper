@@ -66,7 +66,7 @@ For example, recall the \texttt{find\_replace} transformation in~\Cref{ex1}:
 \end{lstlisting}
 The expert is free to encode potential signals as part of the transformation.  For instance, she may encode the string similarity of the two literal parameters and an indicator vector describing which column it applies to.  
 
-\ewu{Notice that many data transformation can be modeled as: a predicate that specifies which records to clean, target attributes to clean, and replacement values for those attributes.  Thus the featurized transformation potentially allows a model to learn which records, which attributes, and what values to clean the relation with.  }
+Notice that many data transformation can be modeled as: a predicate that specifies which records to clean, target attributes to clean, and replacement values for those attributes.  Thus the featurized transformation potentially allows a model to learn which records, which attributes, and what values to clean the relation with.  
 
 For instance, \sys may learn that \texttt{find\_replace} only makes sense for \texttt{city\_name}, or that the replacement string should be similar in edit distance to the source string.  The edit distance threshould can be automatically learned by the classifier.  
 
