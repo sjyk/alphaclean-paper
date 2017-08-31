@@ -38,9 +38,8 @@ Note that the worker-local top-$\gamma$ candidates are a superset of the top-$\g
 
 
 \subsection{Dynamically Learning Pruning Rules}\label{s:dynlearn}
-To effectively search through the language of transformations, search heuristics are important.
-However, it can be a challenge to devise these heuristics \emph{a priori}.
-This section describes how Machine Learning can be used to learn a search heuristic as data is cleaned.
+To effectively search through the language of transformations, pruning heuristics are important, yet hand-writing such heuristics {\it a priori} is challenging.
+We describe how such heuristics can be automatically learned during the cleaning process.
 
 \stitle{Motivation}
 The search algorithms in  most automatic data cleaning frameworks are carefully tuned for a specific quality function or class of quality functions. For example, the chase used in functional dependency resolution does not make an edit to the table unless it enforces at least one tuple's FD relationship.    Similarly, in entity matching problems, one restricts the search to only matching tuples that are likely to be similar based on some similarity metric.
@@ -67,9 +66,7 @@ For example, recall the \texttt{find\_replace} transformation in~\Cref{ex1}:
 \end{lstlisting}
 The expert is free to encode potential signals as part of the transformation.  For instance, she may encode the string similarity of the two literal parameters and an indicator vector describing which column it applies to.  
 
-Notice that many data transformation can be modeled as: a predicate that specifies which records to clean, target attributes to clean, and replacement values for those attributes.  Thus the featurized transformation potentially allows a model to learn which records, which attributes, and what values to clean the relation with.  
-
-For instance, \sys may learn that \texttt{find\_replace} only makes sense for \texttt{city\_name}, or that the replacement string should be similar in edit distance to the source string.  The edit distance threshould can be automatically learned by the classifier.  
+Notice that many data transformation can be modeled as a predicate that specifies which records to clean, target attributes to clean, and replacement values for those attributes.  Thus, the featurized transformation potentially allows a model to learn which records, which attributes, and what replacement values, are highly to contribute to the final cleaning program.  For instance, \sys may learn that \texttt{find\_replace} only makes sense for \texttt{city\_name}.  Similarly, it may learn that the replacement string should be similar in edit distance to the source string, and subsequently learn the appropriate edit distance threshould.
 
 
 \stitle{Discussion} We believe this is one of the reasons why a simple best-first search strategy can be effective.  For the initial blocks, \sys searches without a learned pruning rule in order to gather evidence.  Over time, the classifier can identify systematic patterns that are unlikely to lead to the final cleaning program, and explore the rest of the space.  In fact, this incremental learning process can be viewed from an active learning perspective to further target the exploration towards programs that will best improve the classification model.  
