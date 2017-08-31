@@ -41,7 +41,10 @@ Across 7 real-world datasets used in prior data cleaning literature, we show tha
 
 %Similarly, we applied \sys to numerical outlier problems and compared to the Minimum Covariance Determinant (MCD) algorithm, which is the basis of another recent system called Macrobase~\cite{bailis2016macrobase}.  Outliers removed by \sys  improved the accuracy of a downstream predictive models more significantly than MCD (5\% prediction accuracy improvement on the US Census Dataset) and a (4\% on an EEG dataset).  But more importantly, this is achieved with a core codebase of 2000 lines of python code, and readily amenable to aggressive systems optimizations such as parallelization, caching, and incremental maintenance.  In all of our experiments, we present the degree of parallelization need to match the the runtime of a state-of-the-art competitor.
 
-\sys highlights an approach to data cleaning where users articulate high level cleaning goals, and the system automatically proposes an interpretable cleaning program.
+\sys highlights an approach to data cleaning where users articulate high level cleaning goals, and the system automatically proposes an interpretable cleaning program.  It is an attempt towards a unified, error-agnostic framework for automatic data cleaning systems, similar in spirit to the relational model, which combined transaction, analytic, graph, machine learning, and other data-intensive applications under a unified specification, optimization, and execution framework.
+
+% Similar to the way that the relational model provides a unified specification, analysis, and optimization framework for disparate classes of data-intensive application  (e.g., transactions, analytics, graphs, machine learning), \sys is an attempt at a unified framework for (semi-)automatic data cleaning.
+
 It is important to note that there are clear limitations in this design.
 In some sense, \sys trades off generality for runtime, and it is clearly slower than specialized data cleaning without significantly more resources.
 Second, \sys sacrifices many of the provable properties achieved in specialized systems (e.g., constraint satisfaction). 
