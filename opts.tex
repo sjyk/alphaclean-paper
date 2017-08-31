@@ -6,6 +6,7 @@
 \end{figure}
 
 \section{Search Optimizations}\label{s:opts}
+This section describes two important optimizations that allows \sys to generate cleaning programs in comparable runtimes as specialized systems.
 
 \subsection{Parallelization}\label{s:parallel}
 Composing and evaluating $Q(p'(R))$ is the single most expensive operation in the search procedure.   We now discuss how we parallelize its evaluation in shared memory and distributed settings, and the challenges when combining it with materialization.
