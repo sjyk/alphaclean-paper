@@ -7,8 +7,8 @@ Once an error is detected, there is a further question of how to repair this err
 
 This variability creates a tension between the needs of the data scientist and the designer of the data cleaning framework.
 While the data scientist might desire a single cleaning framework that addresses all of her data errors and repair operations, from an algorithmic perspective, it is far more efficient to consider more restricted models.
-Data cleaning tools are often highly optimized for particular problems  (e.g., see surveys on statistical outliers~\cite{hellerstein2008quantitative}, enforcing logical constraints~\cite{DBLP:conf/sigmod/ChuIKW16}, entity resolution~\cite{DBLP:journals/pvldb/KopckeTR10}). 
-Consequently, a recent survey suggests that data cleaning pipelines are often a patchwork of custom scripts and multiple specialized systems~\cite{krishnan2016hilda}.
+Data cleaning tools are often highly optimized for particular problems  (e.g., see statistical outliers~\cite{hellerstein2008quantitative}, enforcing logical constraints~\cite{DBLP:conf/sigmod/ChuIKW16}, entity resolution~\cite{DBLP:journals/pvldb/KopckeTR10}). 
+Consequently, a recent survey of industry suggests that data cleaning pipelines are often a patchwork of custom scripts and multiple specialized systems~\cite{krishnan2016hilda}.
 The overhead to setup, learn, and manage multiple cleaning systems can easily outweigh their benefits.
 Some data scientists eschew automated tools altogether and simply write data cleaning programs from scratch.
 The customized programming approach quickly becomes difficult to mantain and interpret; especially for users without data engineering expertise~\cite{sculley2014machine}.
@@ -16,11 +16,11 @@ The customized programming approach quickly becomes difficult to mantain and int
 With the availability of vastly more distributed computing resources, perhaps, the focus on restricted data cleaning models should be reconsidered.
 Recent results in AI, such as AlphaGo~\cite{silver2016mastering}, show that a combination of Machine Learning and massively parallelized search can effectively optimize very complex and general objective functions.
 Data cleaning is very similar to the planning problems considered in AI.
-In planning, the system is given a state space and actions that transition between states, and generates a sequence of actions (a plan) that maximizes a quality function. The classic application is a computer chess program that must plan a sequence of chess moves that change the state of the board in order to maximize the likelihood of a checkmate. Likewise, in data cleaning, one is given a dirty relation and a way to measure data quality (e.g., number of integrity constraints violated), and the data cleaning problem is to find a sequence of modifications to the relation that maximize the data quality.
+In planning, the system is given a state space and actions that transition between states, and generates a sequence of actions (a plan) that maximizes a quality function. The classic application is a computer chess program that must plan a sequence of chess moves that change the state of the board in order to maximize the likelihood of a checkmate. Likewise, in data cleaning, one is given a dirty relation and a way to measure data quality (e.g., number of integrity constraints violated), and the data cleaning problem is to find a sequence of modifications to the relation that maximize the data quality metric.
 
 Most non-trivial planning problems are very hard without good search heuristics.
 Advances in machine learning have made it possible to replace hand-crafted heuristics with automatically learned pruning functions that estimate the expected quality of candidate plans. AlphaGo learned pruning heuristics using a neural network trained on data generated through self-play~\cite{silver2016mastering}. 
-In effect, expertly written heuristics have been replaced with data-driven models, which makes the techniques applicable to a diverse set of applications.   
+The key insight is that expertly written heuristics can be replaced with data-driven models, which makes the techniques applicable to a diverse set of applications.   
 This insight is highly relevant to data cleaning, where datasets tend to have structure amenable to learning heuristics adaptively.
 Data errors are often systematic where they are correlated with with certain attributes and values in the dataset~\cite{rekatsinas2017holoclean,DBLP:journals/pvldb/KrishnanWWFG16}.
 Consequently, as more data is cleaned, we can often quickly identify common patterns, which can help prioritize the search on future data.
