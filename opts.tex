@@ -1,7 +1,6 @@
-\begin{figure}[h]
+\begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/distributed.pdf}
-    \vspace{1pt}
     \caption{In each iteration, each worker starts with a subset of the priority queue (boxes).  The driver sends a subset of data transformations from $\Sigma$ (circles) to generate candidate programs (box-circles).  A series of synchronization points identify the globally top $\gamma$ candidates and redistributes them across the workers.   \label{fig:algo}}
 \end{figure}
 
