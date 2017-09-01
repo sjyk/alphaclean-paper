@@ -131,17 +131,15 @@ More generally, one can use a probabilistic model to score records to see how li
 When presented with data that explained well by this model, the system tries to replace the value.
 Example systems include Eracer~\cite{eracer}, SCARED~\cite{yakout2013don}, and dBOOST~\cite{pit2016outlier}.
 
-Statistical quantitative cleaning is a natural fit for \sys, since the record's deviation from the statistical model can be easily translated into a cell or record-wise quality function.  
+Statistical quantitative cleaning is a natural fit for \sys, since the record's deviation from the statistical model can be easily translated into a cell or record-wise quality function. 
 Most systems follow a straight-forward pattern, for each record there is a feature vector $f_r$ in $\mathbb{R}^d$.
 We fit a probabilistic model $m$ to the data.
 For each tuple, we can query the likelihood of the observed feature vector under the model $L(f_r \mid m)$.
 Depending on the featurization, we can make this a row-separable or cell-separable quality function:
 $Q(r) \propto L(f_r \mid m)$.
-
-Recent work on text-featurization such as word embeddings show how similar model-based cleaning techniques can be applied to textual data.  For systems like Eracer~\cite{eracer}, SCARED~\cite{yakout2013don}, the transformation language is the same as the one used in denial constraint systems, \texttt{fix(r,a,v)}.
+The transformation language is the same as the one used in denial constraint systems, \texttt{fix(r,a,v)}.
 However, in some cases, we may want to only delete cells that seem erroneous, \texttt{delete(r,a,v)}.
 In others, we may want to set a default value (e.g., the mean), like \texttt{default(r,a)}.
-This gives \sys more flexibility than existing systems to handle numerical data.
 
   
 \stitle{Programming-by-Demonstration}
@@ -158,28 +156,19 @@ In these systems, the language is often highly restricted.
 For example, \cite{wrangler, jin2017foofah} use the domain-specific language proposed in~\cite{raman2001potter}.
 
 \subsection{Approach Overview and Challenges}
-
 Our problem formulation is a direct instance of {\it planning} in AI~\cite{russell1995modern}, where an agent identifies a sequence of actions to achieve a goal.  In our setting, the agent (\sys) explores a state space ($\mathcal{R}$) from an initial state (the input relation) by following transitions (applying $T_i \in \Sigma$) such that the sequence of actions is valid (within $\Sigma^*$) and the quality of the final state ($Q(R_{final})$) is maximized.  
 
 For readers familiar with stochastic processes, this search problem is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$.
 
-One may be hesitant in adopting our problem formulation because, although it is sufficiently general to model many existing data cleaning problems, such generality often comes at the expense of runtime performance.   The planning problem is APX-Hard, meaning there does not exist a polynomial time approximation unless P=NP.  For this reason, {\it the key technical challenge is to show that \sys can solve data cleaning problems with comparable run-time as existing specialized systems, and can be easily extended to support new optimizations.}
-
-\begin{theorem}[Hardness]
-\textsf{clean}(Q,R,L) is APX-hard
-\end{theorem}
-\begin{proof}[Sketch]
+One may be hesitant in adopting our problem formulation because, although it is sufficiently general to model many existing data cleaning problems, such generality often comes at the expense of runtime performance.   The planning problem is APX-Hard, meaning there does not exist a polynomial time approximation unless P=NP.  
 Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
 Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem. 
-\end{proof}
 
+For this reason, {\it the key technical challenge is to show that \sys can solve data cleaning problems with comparable run-time as existing specialized systems, and can be easily extended to support new optimizations.}
 Despite the problem's worst-case complexity, 
 recent successes in similar planning problems---ranging from AlphaGo~\cite{silver2016mastering} to automatically playing Atari video games~\cite{mnih2015human} have shown that a prudent combination Machine Learning and distributed search can find practical solutions by leveraging the structure of the problem. 
 Not every problem instance is as pathological as the worst case complexity suggests, and there are many reasonable local optima.
 
-\sys uses a standard state-space algorithm that incrementally grows a tree of operators and prunes paths below a threshold of the best path so far. 
-This algorithm is combined with an adaptive step that learns a search heuristic that adaptively prunes implausible search branches early.
-Additionally, we show that the basic algorithm is flexible enough to adapt existing data cleaning optimizations through pruning rules.  In addition, it is simple enough exploit the parallelism available on modern multi-core and cloud compute infrastructures.
 
 
 
