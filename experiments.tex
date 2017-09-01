@@ -34,6 +34,7 @@ We used the dataset from 1970, and there are $170000$ records.
 We downloaded this dataset and sought to understand whether terrorist attacks have become more lethal than they were in the 1970s.  To do so, we hand cleaned the records to create a gold standard.  It turns out that, in this dataset, attacks have become more lethal, but fewer in number than 50 years ago.  This task was intentionally open-ended to represent the nature of the iterative analysis process.
 
 
+
 \begin{figure}
     \centering
     \includegraphics[width=\columnwidth]{exp/exp1.png}
@@ -138,9 +139,12 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
 \end{figure*}
 
 \subsection{Mixing Error Classes}\label{s:expterror}
-In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to evaluate \sys's support of multiple error classes.  
+This experiment, we use the multi-error Terrorism dataset~\cite{data-terrorism}. 
 
-\stitle{Baselines} We hand-coded an entity matching (EM) algorithm that uses blocking to handle duplicate records.  We modeled the missing values as an outlier cleaning problem and used the dBoost library (dBoost). We modeled the location inconsistencies as a functional dependency problem and implemented a restricted chase algorithm (Chase).  Finally, we ran EM, dBoost, and Chase serially on the dataset (Combined).
+\stitle{Baselines} We hand-coded blocking-based entity matching (EM)  and restricted chase (FD) algorithms in Python, and used dBoost for missing values.  We also ran EM, dBoost, and Chase serially on the dataset (Combined). 
+
+%algorithm that uses blocking to handle duplicate records.  We modeled the missing values as an outlier cleaning problem and used the dBoost~\cite{} library (dBoost). We modeled the location inconsistencies as a functional dependency problem and implemented a restricted chase algorithm (Chase).  
+
 
 \stitle{Results} \Cref{exp7a}a shows that combining and cleaning all three classes of errors within the same \sys framework (AC) achieves higher precision and recall than all baselines.  In fact, the combined baselines still does not achieve \sys's level of accuracy because the cleaning operations need to be interleaved differently for different blocks.   Although \sys is slower than any individual baseline, parallelizing \sys to 8} threads is faster than the combined baseline by 2x. 
 
@@ -161,7 +165,8 @@ In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to ev
 \end{figure}
 
 \subsection{\sys In Depth}
-This subsection uses the FEC setup to study the parameters that affect \sys's accuracy and runtime, the robustness of its cleaning programs, and its algorithmic properties.
+We use the FEC setup to study details of \sys.
+%This subsection uses the FEC setup to study the parameters that affect \sys's accuracy and runtime, the robustness of its cleaning programs, and its algorithmic properties.
 
 \subsubsection{Algorithmic Sensitivity}
 

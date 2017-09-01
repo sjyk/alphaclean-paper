@@ -59,11 +59,8 @@ Internally, \sys uses a Logistic Regression classifier that is biased towards fa
 
 \stitle{Featurization}
 To use this approach, we use featurizers to transform each data transformation $T$ into a $k$-dimensional feature vector: \textsf{feat}: $T\mapsto\mathbb{R}^k$.
-For example, recall the \texttt{find\_replace} transformation in~\Cref{ex1}:
-\begin{lstlisting}
-    find_replace(New York, New York City, city_name)
-\end{lstlisting}
-The expert is free to encode potential signals as part of the transformation.  For instance, she may encode the string similarity of the two literal parameters and an indicator vector describing which column it applies to.  
+For example, recall the \texttt{find\_replace(NYC, NY, city\_code)} transformation in~\Cref{ex1}.
+The expert is free to encode potential signals as part of the transformation.  For instance, the edit distance between the two literal parameters (e.g., NYC, NY) and an indicator vector to specify the attrbitue (e.g., city\_code).  
 
 Notice that many data transformation can be modeled as a predicate that specifies which records to clean, target attributes to clean, and replacement values for those attributes.  Thus, the featurized transformation potentially allows a model to learn which records, which attributes, and what replacement values, are highly to contribute to the final cleaning program.  For instance, \sys may learn that \texttt{find\_replace} only makes sense for \texttt{city\_name}.  Similarly, it may learn that the replacement string should be similar in edit distance to the source string, and subsequently learn the appropriate edit distance threshould.
 
