@@ -26,13 +26,11 @@ There are 1200 flight departures and arrivals at airline hubs recorded from each
 
 \stitle{Stock} There are 1000 ticker symbols from 55 sources for every trading day in a month~\cite{data-flights}.  The cleaning task involves (1) integrating the schemas by matching attributes across the sources (e.g., `prev. close' vs `Previous Close'), and then (2) reconciling daily ticker values values using primary-key-based functional dependencies akin to the flight dataset.
 
-\stitle{Terrorism} The Global Terrorism Database~\cite{data-terrorism} is a dataset of around terrorist attacks scraped from news sources.  Each record contains the date, location, details about the attack, and the number of fatalities and injuries.  The dataset contains a mixture of data errors:
-(1) there are many duplicates for the same terrorist incident,
-(2) many missing values in the fatalities and injuries attributes are encoded as zeros, which overlaps with attacks that didnot have any fatalities/injuries, and
-(3) the location attributes are inconsistently encoded.  
-We used the dataset from 1970, and there are around $200$ records.  
+\stitle{Terrorism} The Global Terrorism Database~\cite{data-terrorism} contains terrorist attacks scraped from news sources.  Attributes include date, location, text details, and the number of fatalities and injuries.  Three types of errors need to be cleaned---Entity Matching for duplicates of the same attack; outliers to resolve missing fatality and injury values that are encoded as $0$; and functional dependencies for inconsistent location values.
+There are around $200$ records since $1970$.
+We downloaded this dataset and sought to understand whether terrorist attacks have become more lethal than they were in the 1970s.  We hand-cleaned the records for ground truth.
 
-We downloaded this dataset and sought to understand whether terrorist attacks have become more lethal than they were in the 1970s.  To do so, we hand cleaned the records to create a gold standard.  It turns out that, in this dataset, attacks have become more lethal, but fewer in number than 50 years ago.  This task was intentionally open-ended to represent the nature of the iterative analysis process.
+%to create a gold standard.  It turns out that, in this dataset, attacks have become more lethal, but fewer in number than 50 years ago.  This task was intentionally open-ended to represent the nature of the iterative analysis process.
 
 
 
@@ -145,9 +143,11 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
 \end{figure*}
 
 \subsection{Mixing Error Classes}\label{s:expterror}
-In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to evaluate \sys's support of multiple error classes.  
+This experiment, we use the multi-error Terrorism dataset~\cite{data-terrorism}. 
 
-\stitle{Baselines} We hand-coded an entity matching (EM) algorithm that uses blocking to handle duplicate records.  We modeled the missing values as an outlier cleaning problem and used the dBoost~\cite{} library (dBoost). We modeled the location inconsistencies as a functional dependency problem and implemented a restricted chase algorithm (Chase).  Finally, we ran EM, dBoost, and Chase serially on the dataset (Combined).
+\stitle{Baselines} We hand-coded blocking-based entity matching (EM)  and restricted chase (FD) algorithms in Python, and used dBoost for missing values.  We also ran EM, dBoost, and Chase serially on the dataset (Combined). 
+
+%algorithm that uses blocking to handle duplicate records.  We modeled the missing values as an outlier cleaning problem and used the dBoost~\cite{} library (dBoost). We modeled the location inconsistencies as a functional dependency problem and implemented a restricted chase algorithm (Chase).  
 
 \stitle{Results} \Cref{exp7a}a shows that combining and cleaning all three classes of errors within the same \sys framework (AC) achieves higher precision and recall than all baselines.  \ewu{In fact, the combined baselines still does not achieve \sys's level of accuracy because the cleaning operations need to be interleaved differently for different blocks.}   Although \sys is slower than any individual baseline, parallelizing \sys to \ewu{XXX} threads is faster than the combined baseline by \ewu{FOO$\times$}. 
 
