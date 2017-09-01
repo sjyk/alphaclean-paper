@@ -13,9 +13,9 @@ The overhead to setup, learn, and manage multiple cleaning systems can easily ou
 Some data scientists eschew automated tools altogether and simply write data cleaning programs from scratch.
 The customized programming approach quickly becomes difficult to mantain and interpret; especially for users without data engineering expertise~\cite{sculley2014machine}.
 
-With the availability of vastly more distributed computing resources, perhaps, the focus on restricted data cleaning models should be reconsidered.
-Recent results in AI, such as AlphaGo~\cite{silver2016mastering}, show that a combination of Machine Learning and massively parallelized search can effectively optimize very complex and general objective functions.
-Data cleaning is very similar to the planning problems considered in AI.
+We believe that a single cleaning system that exposes a sufficiently flexible interface can address the above challenges as long as the runtime can be made comparable to existing alternatives.  
+To this, we turn to the modern AI and planning literature, which has produced exciting results such as AlphaGo~\cite{silver2016mastering} that were previously considered not possible.    This work shows that a combination of machine learning and massively parallelized search can effectively optimize highly complex objective functions.
+Our main observation is that data cleaning is very similar to AI planning problems~\cite{russell1995modern}.
 In planning, the system is given a state space and actions that transition between states, and generates a sequence of actions (a plan) that maximizes a quality function. The classic application is a computer chess program that must plan a sequence of chess moves that change the state of the board in order to maximize the likelihood of a checkmate. Likewise, in data cleaning, one is given a dirty relation and a way to measure data quality (e.g., number of integrity constraints violated), and the data cleaning problem is to find a sequence of modifications to the relation that maximize the data quality metric.
 
 Most non-trivial planning problems are very hard without good search heuristics.
@@ -23,26 +23,60 @@ Advances in machine learning have made it possible to replace hand-crafted heuri
 The key insight is that expertly written heuristics can be replaced with data-driven models, which makes the techniques applicable to a diverse set of applications.   
 This insight is highly relevant to data cleaning, where datasets tend to have structure amenable to learning heuristics adaptively.
 Data errors are often systematic where they are correlated with with certain attributes and values in the dataset~\cite{rekatsinas2017holoclean,DBLP:journals/pvldb/KrishnanWWFG16}.
-Consequently, as more data is cleaned, we can often quickly identify common patterns, which can help prioritize the search on future data.
+Consequently, as more data is cleaned, we can better identify common patterns to prioritize the search on future data.
 
-\sys is a new data cleaning system that is designed around an algorithmic planning architecture. It takes as input a continuous-valued {\it quality function} that models the data quality of a relation and a {\it language} of parameterized data cleaning operators, and outputs a sequence of data cleaning transformations (a cleaning program) from the language that seeks to maximize the quality function.  This API imposes minimal restrictions on the quality function, and we show that it can express arbitrary combinations of existing data cleaning formalisms such as functional dependencies, denial constraints, text formatting, and statistical models.  
-\sys can also encode problem-specific optimizations as search pruning rules (e.g., disallowed transformation sequences) or modifications to the data representation (e.g., clustering similar records).  
-In addition to hard-coded pruning rules, \sys can adaptively learn to prioritize the promising subsets of the search space. 
-While AlphaGo used a deep neural network to model the heurisitic, we found that a logistic regression classifier was sufficient. 
-This approach has a number of benefits: (1) users can focus on expressing their application's notion of data quality using the expressive quality function, (2) the output is a transformation sequence rather than a clean database instance that is more interpretable and can be applied to new datasets, and (3) the core algorithm is both simple  ($<500$ lines of Python) and general across different data error domains and problem instances.
+\sys is a new data cleaning system that is designed around a search-based architecture. It takes as input a {\it quality function} that models the data quality of a relation as a real-value between $[0,1]$ and a {\it language} of parameterized data cleaning operators, and outputs a sequence of data cleaning transformations (a cleaning program) from the language that seeks to maximize the quality function.This API imposes minimal restrictions on the quality function, giving it tremendous flexibility in terms of the data errors that it can express.   As a comparison, a recent system called Holoclean~\cite{holoclean} is similar in that it provides a rich interface to specify denial constraints and lookup tables, and integrates them within a probabilistic model to more accurately resolve constraint violations.  In contrast, \sys's quality function is a UDF that can express {\it arbitrary combinations} of denial constraints {\it as well as} statistical, quantitative, text formatting, and other classes of data errors.  For instance, \Cref{s:expquant} shows how \sys can perform cleaning for machine learning applications by embedding machine learning training and evaluation within the quality function, while \Cref{s:expterror} combines entity resolution, outlier cleaning, and functional dependency violations within the same function.  
 
- \sys uses a best-first search that greedily appends data transformations to the set of best candidate programs seen so far, and adopts parallelization and pruning ideas from the planning literature.  In contrast to traditional planning, where the search state (e.g., chess board) is compact and largely trivial to parallelize in a distributed setting, the data cleaning search state is the size of the input dataset and introduces a trade-off between communication costs to share intermediate state and the degree of parallelism possible.  We develop a gather-scatter style method to parallelize \sys in a distributed context. 
- 
-It is natural to expect that such a general formulation must sacrifice cleaning accuracy, runtime performance, or both.  Our primary technical contribution is to show that neither need be sacrificed. 
-It is important to acknowledge that \sys loses many of the provable guarantees provided by specialized systems based on logical constraints, and is in some sense, best-effort.  
-Across 8 real-world datasets used in prior data cleaning literature, we show that \sys matches or exceeds the cleaning accuracy and exhibits competitive run-times (provided enough computational resources are available) to state-of-the-art approaches that are specialized to a specific error domain (constraint, statistical, or quantitative errors).  At the same time, \sys generates an interpretable cleaning program that be re-used on new data, and can clean datasets that exhibit errors spanning multiple error domains. 
+\sys uses a best-first search that greedily appends data transformations to the set of best candidate programs seen so far, and adopts parallelization and pruning ideas from the search-based planning literature.  In contrast to traditional planning, where the search state (e.g., chess board) is compact and largely trivial to parallelize in a distributed setting, the data cleaning search state is the size of the input dataset and introduces a trade-off between communication costs to share intermediate state and the degree of parallelism possible.  We develop a gather-scatter style method to parallelize \sys in a distributed context. 
 
-\sys highlights an approach to data cleaning where users articulate high level cleaning goals, and the system automatically proposes an interpretable cleaning program.  It is a step towards a unified framework for automatic data cleaning systems, similar in spirit to the relational model, which combined transaction, analytic, graph, machine learning, and other data-intensive applications under a unified specification, optimization, and execution framework.
+To further accelerate its runtime, \sys can also encode problem-specific optimizations as search pruning rules (e.g., disallowed transformation sequences) or modifications to the data representation (e.g., clustering similar records).  We find that many optimizations in existing cleaning systems may be cast as search pruning rules.
+More powerfully, \sys can adaptively learn pruning rules to avoid unprofitable search branches during the search process. 
+While AlphaGo used a deep neural network and massive amounts of training data to model the heurisitic, we found that a simple logistic regression classifier and training data gathered during the search process was sufficient to reduce the runtime by multiple orders of magnitude. 
 
 
+It is natural to expect that such a general formulation must sacrifice cleaning accuracy, runtime performance, or both.  Our primary technical contribution is to show that neither need be sacrificed\footnote{It is important to acknowledge that \sys loses many of the provable guarantees provided by specialized systems based on logical constraints, and is in some sense, best-effort.  }
+Across 8 real-world datasets used in prior data cleaning literature, we show that \sys matches or exceeds the cleaning accuracy and exhibits competitive run-times to state-of-the-art approaches that are specialized to a specific error domain (constraint, statistical, or quantitative errors).  \ewu{Sprinkle some numbers here}
+
+We believe that unifying disparate data cleaning problems within a single, compact\footnote{The core search and optimization code is $<200$LOC in Python.} framework offers many unique benefits and directions for new data cleaning applications.  These include:
+\begin{itemize}[leftmargin=*, topsep=0mm, itemsep=0mm]
+\item \stitle{Optimization} Existing cleaning pipelines must combine disparate cleaning solutions and manage glue code to transfer data between systems.  However, data transfer can be a non-trivial portion of the total cleaning cost and recent work~\cite{palkar2017weld} has shown that a common runtime can avoid data movement and improve runtimes by up to $30\times$.  Unifying data cleaning within a single search-based framework avoids such overheads and offers optimization opportunities such as parallelization and shared computation between the different error classes.
+
+\item \stitle{Generalization and Robustness} In contrast to existing cleaning systems, that output a cleaning relation, \sys outputs a composable cleaning program that is both simpler to understand because it groups common fixes together, and can be applied to new data.  In addition, the cleaning program allows us to analyze cleaning systems for overfitting.  We indeed find that the complexity of the quality function and cleaning language can lead to overfitting, and believe this is the case for any data cleaning system.  We also show that simple changes to the quality function can act as regularization terms to control the degree of overfitting.
+
+\item \stitle{Software Engineering} Eschewing multiple cleaning systems simplifies software engineering, and lets users focus on expressing their application's notion of data quality.  Users do not need to write and manage glue code; do not need to manage ETL between systems; and do not need to learn system specific abstractions, languages, and assumptions.  All of these are arguably intangible, but critical friction points in the highly iterative cleaning process.  
+
+\item \stitle{New Cleaning Applications} We currently support a programmatic interface using simple Python library, however we envision that a single API makes it possible to support an ecosystem of domain-specific cleaning specification libraries.  For instance,  interactive visualization interfaces akin to~\cite{trifacta,kandel2011wrangler,DBLP:journals/pvldb/0002M13,wu2012demonstration} can directly translate user interactions into a wide range of cleaning constraints.   This can enable an entire population of non-technical domain experts to participate in the data cleaning process.
+\end{itemize}
+
+To summarize, \sys highlights an approach to data cleaning where users articulate high level cleaning goals, and the system automatically proposes an interpretable cleaning program.  It is a step towards a unified framework for automatic data cleaning systems, similar in spirit to the relational model, which combined transaction, analytic, graph, machine learning, and other data-intensive applications under a unified specification, optimization, and execution framework.
 
 
 
+% * single library/language with the same abstraction is important (software engineering)
+%   * no more glue code -- talk about weld, etc.  
+%   * no ETL between systems
+%   * no leraning new abstractions
+%   * new languages to specify constraints and quality goals.  some are languages, some are APis, some are systems
+%   * engineering: systems like llunatic, need to satisfy postgres schema to get started
+% 
+% * different
+%   * application driven cleaning by embedding downstream app into the quality function
+%   * new apps
+%     * viz stuff needs a single api
+%     * mixed datasets -- numeric and relational data
+%     * many interfaces to compose and create quality functions and languages
+% 
+% * holoclean
+%   * lets them express denial constraints and use a knowledge base to decide how to resolve violations
+%   * we suppor denial constraints, as well as numeric errors, text extraction errors, and arbitrary formulations of teh quality measure.  
+% 
+% 
+% * unification -->
+%   * reduces engineering to implement cleaning system
+%   * joint optimization if overlapping in 
+% * generalize to new data 
+%   * overfitting
+% * parallelize opportunities
 
 
 

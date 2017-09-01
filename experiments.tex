@@ -144,7 +144,7 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
  \label{fig:microbenchmarks}}
 \end{figure*}
 
-\subsection{Mixing Error Classes}
+\subsection{Mixing Error Classes}\label{s:expterror}
 In the next experiment, we use the Terrorism dataset~\cite{data-terrorism} to evaluate \sys's support of multiple error classes.  
 
 \stitle{Baselines} We hand-coded an entity matching (EM) algorithm that uses blocking to handle duplicate records.  We modeled the missing values as an outlier cleaning problem and used the dBoost~\cite{} library (dBoost). We modeled the location inconsistencies as a functional dependency problem and implemented a restricted chase algorithm (Chase).  Finally, we ran EM, dBoost, and Chase serially on the dataset (Combined).

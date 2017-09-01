@@ -75,6 +75,7 @@ p^* = ~ \max_{p \in L} Q( p(R_{dirty}) ).
 \]
 \end{problem}
 $p^*(R_{dirty})$ returns the cleaned table, and $p^*$ can be applied to any table that is union compatible with $R_{dirty}$.
+A desirable property of this problem formulation is that it directly trades off runtime with cleaning accuracy and can be stopped at any time (though the cleaning program may be suboptimal).  At the limit, \sys simply explores $L$ and identifies the optimal program.
 
 
 \begin{example}\label{ex3}
