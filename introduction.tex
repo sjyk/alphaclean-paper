@@ -38,17 +38,24 @@ It is natural to expect that such a general formulation must sacrifice cleaning 
 Across 8 real-world datasets used in prior data cleaning literature, we show that \sys matches or exceeds the cleaning accuracy, and exhibits competitive runtimes, as compared to state-of-the-art approaches that are specialized to a specific error domain (constraint, statistical, or quantitative errors).  On a mixed error dataset that requires three specialized cleaning systems, we show that \sys has higher precision and recall (\ewu{NUMBERS}) than running the three specialized systems is sequence, generates the cleaning program in \ewu{XXX$\times$} less time.
 
 We believe that unifying disparate data cleaning problems within a single, compact\footnote{The core search and optimization code is $<200$LOC in Python.} framework offers many unique benefits and directions for new data cleaning applications.  These include:
-\begin{itemize}[leftmargin=*, topsep=0mm, itemsep=0mm]
-\item \stitle{Optimization} Existing cleaning pipelines must combine disparate cleaning solutions and manage glue code to transfer data between systems.  However, data transfer can be a non-trivial portion of the total cleaning cost and recent work~\cite{palkar2017weld} has shown that a common runtime can avoid data movement and improve runtimes by up to $30\times$.  Unifying data cleaning within a single search-based framework avoids such overheads and offers optimization opportunities such as parallelization and shared computation between the different error classes.
 
-\item \stitle{Generalization and Robustness} In contrast to existing cleaning systems, that output a cleaning relation, \sys outputs a composable cleaning program that is both simpler to understand because it groups common fixes together, and can be applied to new data.  In addition, the cleaning program allows us to analyze cleaning systems for overfitting.  We indeed find that the complexity of the quality function and cleaning language can lead to overfitting, and believe this is the case for any data cleaning system.  We also show that simple changes to the quality function can act as regularization terms to control the degree of overfitting.
+%\begin{itemize}[leftmargin=*, topsep=0mm, itemsep=0mm]
+\stitle{Optimization} Existing cleaning pipelines must combine disparate cleaning solutions and manage glue code to transfer data between systems.  However, data transfer can be a non-trivial portion of the total cleaning cost and recent work~\cite{palkar2017weld} has shown that a common runtime can avoid data movement and improve runtimes by up to $30\times$.  Unifying data cleaning within a single search-based framework avoids such overheads and offers optimization opportunities such as parallelization and shared computation between the different error classes.
 
-\item \stitle{Software Engineering} Eschewing multiple cleaning systems simplifies software engineering, and lets users focus on expressing their application's notion of data quality.  Users do not need to write and manage glue code; do not need to manage ETL between systems; and do not need to learn system specific abstractions, languages, and assumptions.  All of these are arguably intangible, but critical friction points in the highly iterative cleaning process.  
+ \stitle{Generalization and Robustness} In contrast to existing cleaning systems, that output a cleaning relation, \sys outputs a composable cleaning program that is both simpler to understand because it groups common fixes together, and can be applied to new data.  In addition, the cleaning program allows us to analyze cleaning systems for overfitting.  We indeed find that the complexity of the quality function and cleaning language can lead to overfitting, and believe this is the case for any data cleaning system.  We also show that simple changes to the quality function can act as regularization terms to control the degree of overfitting.
 
-\item \stitle{New Cleaning Applications} We currently support a programmatic interface using simple Python library, however we envision that a single API makes it possible to support an ecosystem of domain-specific cleaning specification libraries.  For instance,  interactive visualization interfaces akin to~\cite{trifacta,kandel2011wrangler,DBLP:journals/pvldb/0002M13,wu2012demonstration} can directly translate user interactions into a wide range of cleaning constraints.   This can enable an entire population of non-technical domain experts to participate in the data cleaning process.
-\end{itemize}
+ \stitle{Software Engineering} Eschewing multiple cleaning systems simplifies software engineering, and lets users focus on expressing their application's notion of data quality.  Users do not need to write and manage glue code; do not need to manage ETL between systems; and do not need to learn system specific abstractions, languages, and assumptions.  All of these are arguably intangible, but critical friction points in the highly iterative cleaning process.  
 
+ \stitle{New Cleaning Applications} We currently support a programmatic interface using simple Python library, however we envision that a single API makes it possible to support an ecosystem of domain-specific cleaning specification libraries.  For instance,  interactive visualization interfaces akin to~\cite{trifacta,kandel2011wrangler,DBLP:journals/pvldb/0002M13,wu2012demonstration} can directly translate user interactions into a wide range of cleaning constraints.   This can enable an entire population of non-technical domain experts to participate in the data cleaning process.
+
+\smallskip
 To summarize, \sys highlights an approach to data cleaning where users articulate high level cleaning goals, and the system automatically proposes an interpretable cleaning program.  It is a step towards a unified framework for automatic data cleaning systems, similar in spirit to the relational model, which combined transaction, analytic, graph, machine learning, and other data-intensive applications under a unified specification, optimization, and execution framework.
+
+
+
+
+
+
 
 
 
