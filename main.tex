@@ -49,7 +49,7 @@
 
 \usepackage{balance}
 
-%\linespread{0.99}
+\linespread{0.99}
 
 \makeatletter
 \def\@copyrightspace{\relax}
@@ -175,7 +175,7 @@
 % \title{\sys: Automatic Data Cleaning as Planning}
 % \title{\sys: Automatic Data Cleaning as Optimization}
 %\title{\sys: A Declarative Data Cleaning System Inspired By AlphaGo}
-\title{AlphaClean: A Planning Approach Towards Unified Automatic Data Cleaning}
+\title{AlphaClean: Automatic Data Cleaning With Distributed Search and Machine Learning}
 
 \numberofauthors{1}
 \author{ Sanjay Krishnan$\,^{*}$, Michael J. Franklin$\,^{*\dag}$, Ken Goldberg$\,^{*}$, Eugene Wu{$\,^{\dag\dag}$}  \\
@@ -192,17 +192,12 @@
 
 \begin{abstract}
 Results in AI, like AlphaGo, have shown that a combination of Machine Learning and distributed search can effectively optimize very complex objective functions, e.g., the value of board positions in a complex game like Go.
-These results are highly relevant to the study of data cleaning, which often involves an optimization over modifications to a dataset to enforce a complex, interdependent set of data constraints.
-This paper explores explicitly posing the data cleaning as a planning problem: given an objective function that defines cleanliness, find a feasible sequence of data transformations that maximizes this objective.
-Our system, \sys, is based on this general optimization framework that can express a very large class of data cleaning problems including cleaning with rules, statistical models, and crowd sourcing.
-While very general, special case performance can be improved through an API that specifies pruning and data partitioning rules on top of this general framework. 
-The system additionally adaptively learns additional pruning functions with Machine Learning to exploit systematic errors in the dataset--and re-use previously discovered transformation patterns.
-The benefits of this approach are: (1) there are few restrictions on what the user can express at the cost of run time, (2) the output is a sequence of transformations rather than a clean database instance so the logic of the algorithm is more interpretable and can apply to future data, and (3) the optimization algorithm is greatly simplified and parallelizable.
-Surprisingly, we find that \sys achieves parity with state-of-the-art specialized constraint, statistical, and quantitative data cleaning systems in terms of accuracy.
-On two datasets considered in prior data cleaning work of Flight arrival times and a Physician registry, \sys achieves a similar precision and recall to a recently proposed Denial Constraint systems. 
-Similarly, we applied \sys to numerical outlier problems and compared to the Minimum Covariance Determinant (MCD) algorithm.
-Outliers removed by \sys  improved the accuracy of a downstream predictive models more significantly than MCD (5\% prediction accuracy improvement on the US Census Dataset) and a (4\% on an EEG dataset). 
-We find that \sys achieves these levels for a very reasonable amount of additional computation (up-to 64 additional search threads).
+This paper explores an analogous approach to data cleaning, a cost-based search over data transformations.
+We propose \sys where users articulate high level cleaning goals (as a function that measures the quality of the data), and the system automatically finds an interpretable cleaning program to best maximize that objective.
+\sys is very general and can express a very large class of data cleaning problems including cleaning with integrity constraints and statistical models.
+The system additionally adaptively learns a search heuristic with Machine Learning to exploit systematic errors in the dataset.
+With \sys: (1) there are few restrictions on what the user can express at the cost of run time, (2) the output is a sequence of transformations rather than a database instance so the output can apply to future data, and (3) the optimization algorithm is parallelizable.
+We compared \sys to several special case integrity constraint systems and quantitative data cleaning approaches, and suprisingly, found that we can match the accuracy and the runtime by leveraging parallelism.
 \end{abstract}
 
 
@@ -226,7 +221,7 @@ We find that \sys achieves these levels for a very reasonable amount of addition
 %\bibliographystyle{abbrv}
 
 {
-\fontsize{8.8pt}{9.6pt} \selectfont
+\fontsize{8.2pt}{9.4pt} \selectfont
 \small
 \bibliographystyle{abbrv}
 \bibliography{ref} 
