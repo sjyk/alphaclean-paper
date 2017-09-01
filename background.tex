@@ -19,6 +19,7 @@ Although $\mathbb{T}$ can in theory be an arbitrary deterministic template funct
 The following \texttt{City} relation contains two attributes \textsf{city\_name} and \textsf{city\_code}.  Suppose there is a one-to-one relationship between the two attributes. In this case, the relation is inconsistent with respect to the relationship and contains errors highlighted in \red{red}.
 
   \begin{table}[ht!]
+	\small
   \centering
   \label{my-label}
   \begin{tabular}{|l|l|l|}
@@ -92,7 +93,7 @@ By searching through all possible programs up to length 3 in $L$, we can find a 
 \end{example}
 
 
-\subsection{Model Expressiveness}
+\subsection{Problem Expressiveness}\label{s:probexpressiveness}
 We now show how $\textsf{clean}(Q,R_{dirty},L)$ can be used to express a wide range data cleaning problems that have traditionally be tackled with specialized systems.  We present examples from three major classes of problems: constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.  
 
 \stitle{Constraint-based Systems}
