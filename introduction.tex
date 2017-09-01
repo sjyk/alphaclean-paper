@@ -13,7 +13,7 @@ The overhead to setup, learn, and manage multiple cleaning systems can easily ou
 Some data scientists eschew automated tools altogether and simply write data cleaning programs from scratch.
 The customized programming approach quickly becomes difficult to mantain and interpret; especially for users without data engineering expertise~\cite{sculley2014machine}.
 
-We believe that a single cleaning system that exposes a sufficiently flexible interface can address the above challenges; as long as the runtime can be made comparable to existing alternatives.  
+A single cleaning system that exposes a sufficiently flexible interface is clearly desirable; as long as the runtime and accuracy can be made comparable to existing alternatives.  
 To achieve this, we turn to the contemporary AI literature, which has produced exciting results such as AlphaGo~\cite{silver2016mastering} that were previously considered not possible.    This work shows that a combination of machine learning and massively parallelized search can effectively optimize highly complex objective functions.
 Our main observation is that data cleaning is very similar to the search problems considered in AI~\cite{russell1995modern}.
 The classic application is a computer chess program that must plan a sequence of chess moves that change the state of the board in order to maximize the likelihood of a checkmate. Likewise, in data cleaning, one is given a dirty relation and a way to measure data quality (e.g., number of integrity constraints violated), and the data cleaning problem is to find a sequence of modifications to the relation that maximize the data quality metric.

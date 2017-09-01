@@ -130,7 +130,14 @@ We now evaluate cleaning on the stock dataset~\cite{data-flights} from 55 differ
 
 \vspace{0.5em}\noindent\textbf{Baselines: } We compare approaches for each error type in isolation.  Schema Integration  (SI) matches attributes based on attribute name string similarity, and Data Cleaning (DC) assumes schemas are consistent and enforces functions dependencies using a restricted chase~\cite{benedikt2017benchmarking}.
 
-\vspace{0.5em}\noindent\textbf{Results: } The specialized cleaning approaches exhibit high precision but low recall, as they miss records with multiple errors (\Cref{exp3a}).  \sys can mix both tasks in the quality function and has comparable precision with much higher recall.  SI is significantly faster since it only reads schema metadata, however \sys with learning and 16 threads is competitive with DC.  
+\vspace{0.5em}\noindent\textbf{Results: } The specialized cleaning approaches exhibit high precision but low recall, as they miss records with multiple errors (\Cref{exp3a}).  \sys can mix both tasks in the quality function and has comparable precision with much higher recall.  SI is significantly faster since it only reads schema metadata, however \sys with learning and 16 threads is competitive with DC.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\columnwidth]{exp/exp7.png}
+    \caption{\small The terrorism dataset contains 3 classe of errors. (A) A unified cleaning framework outperforms individual cleaning approaches and even a serial combination.  (B) \sys is easily parallelized to 8 threads to outperform the combined baselines.  \label{exp7a}}
+\end{figure}
+
 \begin{figure*}[ht]
 \centering
  \includegraphics[width=\textwidth]{exp/exp4.png}
@@ -157,12 +164,23 @@ This experiment, we use the multi-error Terrorism dataset~\cite{data-terrorism}.
 % \sys achieves the highest precision and recall.
 % \sys also achieves a competitive runtime to using all of the different system and accounting for data transfer time between them.
 
+ \begin{figure*}[t]
+\centering
+ \includegraphics[width=\textwidth]{exp/exp5.png}
+ \caption{\small (A) Regularization by increasing an editCost penalty makes \sys more robust to noisy (mis-specified) quality functions, (B-C) overly expressive transformation templates can lead to overfitting (2 attr) or an infeasibly large search space (3 attr).  
+ \label{fig:sensitivity}}
+\end{figure*}
 
-\begin{figure}
-    \centering
-    \includegraphics[width=\columnwidth]{exp/exp7.png}
-    \caption{\small The terrorism dataset contains 3 classe of errors. (A) A unified cleaning framework outperforms individual cleaning approaches and even a serial combination.  (B) \sys is easily parallelized to 8 threads to outperform the combined baselines.  \label{exp7a}}
-\end{figure}
+ \begin{figure*}[t]
+\centering
+ \includegraphics[width=\textwidth]{exp/exp6.png}
+ \caption{\small 
+   (A) Both the materialization (Cache) and distributed communication (Comm) optimizations contribute to improved scale-out runtimes.
+   (B) The learned pruning rules improve the search costs for each subsequent block-wise partition.  
+   (C) Best-first search is better than BFS and DFS; reducing $\gamma$ prunes more candidates at the expense of lower accuracy.  
+ \label{fig:opt}}
+\end{figure*}
+
 
 \subsection{\sys In Depth}
 This subsection uses the FEC setup to study the parameters that affect \sys's accuracy and runtime, the robustness of its cleaning programs, and its algorithmic properties.
@@ -191,12 +209,7 @@ We evaluate this by artificially coupling between 1-10 records together, and cre
 \stitle{Quality Function Complexity} Finally, we incrementally increase the quality function's complexity and show haw it affects the cleaning accuracy.  We add the following constraints in sequence: one functional dependency (FD), a second FD, an entity resolution similarity rule, and a third FD.  We define the quality function as the sum of each constraint's quality function.   \Cref{fig:microbenchmarks}d shows that the F1 accuracy decreases as more constraints are added, however the F1 score is still above $75\%$.  
 
 
- \begin{figure*}[ht]
-\centering
- \includegraphics[width=\textwidth]{exp/exp5.png}
- \caption{\small (A) Regularization by increasing an editCost penalty makes \sys more robust to noisy (mis-specified) quality functions, (B-C) overly expressive transformation templates can lead to overfitting (2 attr) or an infeasibly large search space (3 attr).  
- \label{fig:sensitivity}}
-\end{figure*}
+
 
 \subsubsection{Cleaning Generalization and Overfitting}\label{s:expoverfit}
 An important characteristic of generating cleaning solutions as {\it programs} is that we can evaluate the program's robustness in terms of machine learning concepts such as overfitting and generalization.    To this end, we examine two concepts in the context of data cleaning: regularizaton and overfitting.  We also find that \sys's high level interface is helpful for iteratively tuning the cleaning process.
@@ -221,6 +234,9 @@ Indeed we find an interesting trade-off.  The 1 attribute predicate performed wo
 
 
 \subsubsection{Scaling}
+Next, we present preliminary results illustrating the scaling properties of \sys. 
+
+\vspace{1em}
 
 \stitle{Parallelization Optimizations} The experiments run on a cluster of 4 mx.large EC2 instances, and we treat each worker in a distributed (not shared-memory) fashion.   \Cref{fig:opt}a shows the benefits of the materialization and communication optimizations in \Cref{s:parallel}.  {\it No opt.} simply runs best-first search in parallel without any materialization; workers only synchronize at the end of an iteration by sending their top-$\gamma$ candidate programs to the driver, which prunes and redistributes the candidates in the next iteration.  {\it Cache} extends No opt by locally materializing parent programs, and {\it Cache+Comm} further adds the communication optimizations for distributed parallelization.   
 
@@ -230,12 +246,25 @@ The single threaded No Opt setting runs in $4432$s, and the materialization opti
 
 \stitle{Search Algorithm Choice} \Cref{fig:opt}c shows that best-first search out-performs naive depth and breadth first search.  We also report \sys when $\gamma=\{0.5, 0.25\}$.  We see that as the block size increases, DFS and BFS quickly become infeasible, whereas \sys runs orders of magnitude more quickly.  In addition, reducing $\gamma$ improves the runtime, however can come at the cost of reduced accuracy by pruning locally sub-optimal but globally optimal candidate programs.  
 
- \begin{figure*}[ht]
+
+
+\subsubsection{Program Structure}
+Finally, we present results describing the structure of the data cleaning programs found with \sys.
+It is often the case that the program found by \sys is a concise description of the needed data cleaning operations, that is, the total number of cell edits is much larger than the length of the program.
+We consider the FEC dataset, the EEG dataset, and GTD dataset.
+
+Sometimes, the program (FEC and GTD) encodes a significant amount of literal values. This happens in entity matching type problems. For these problems, the program length is relatively large, however, the number of cells modified is even larger (up to 10x more).
+For datasets like the EEG dataset, the program is very concise (26x smaller than the number of cells modified).
+Numerical thresholds are generalize better than categorical find-and-replace operations.
+
+\begin{table}[ht!]
 \centering
- \includegraphics[width=\textwidth]{exp/exp6.png}
- \caption{\small 
-   (A) Both the materialization (Cache) and distributed communication (Comm) optimizations contribute to improved scale-out runtimes.
-   (B) The learned pruning rules improve the search costs for each subsequent block-wise partition.  
-   (C) Best-first search is better than BFS and DFS; reducing $\gamma$ prunes more candidates at the expense of lower accuracy.  
- \label{fig:opt}}
-\end{figure*}
+\label{my-label}
+\begin{tabular}{|l|l|l|}
+\hline
+    & Program Length & Cells Modified \\ \hline \hline
+FEC & 6416           & 78342          \\ \hline
+EEG & 6              & 161            \\ \hline
+GTD & 1014           & 104992 \\ \hline
+\end{tabular}
+\end{table}

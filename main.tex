@@ -175,7 +175,7 @@
 % \title{\sys: Automatic Data Cleaning as Planning}
 % \title{\sys: Automatic Data Cleaning as Optimization}
 %\title{\sys: A Declarative Data Cleaning System Inspired By AlphaGo}
-\title{AlphaClean: Automatic Data Cleaning With Distributed Search and Machine Learning}
+\title{AlphaClean: Data Cleaning With Distributed Search and Machine Learning}
 
 \numberofauthors{1}
 \author{ Sanjay Krishnan$\,^{*}$, Michael J. Franklin$\,^{*\dag}$, Ken Goldberg$\,^{*}$, Eugene Wu{$\,^{\dag\dag}$}  \\
@@ -191,13 +191,7 @@
 \maketitle
 
 \begin{abstract}
-Results in AI, like AlphaGo, have shown that a combination of Machine Learning and distributed search can effectively optimize very complex objective functions, e.g., the value of board positions in a complex game like Go.
-This paper explores an analogous approach to data cleaning, a cost-based search over data transformations.
-We propose \sys where users articulate high level cleaning goals (as a function that measures the quality of the data), and the system automatically finds an interpretable cleaning program to best maximize that objective.
-\sys is very general and can express a very large class of data cleaning problems including cleaning with integrity constraints and statistical models.
-The system additionally adaptively learns a search heuristic with Machine Learning to exploit systematic errors in the dataset.
-With \sys: (1) there are few restrictions on what the user can express at the cost of run time, (2) the output is a sequence of transformations rather than a database instance so the output can apply to future data, and (3) the optimization algorithm is parallelizable.
-We compared \sys to several special case integrity constraint systems and quantitative data cleaning approaches, and suprisingly, found that we can match the accuracy and the runtime by leveraging parallelism.
+Recent results in AI such as AlphaGo have shown that a combination of machine learning and distributed search can effectively optimize very complex objective functions, e.g., the value of board positions in a complex Go game. This paper proposes an analogous approach to data cleaning:  optimizing a distributed search over data transformations.  We present \sys where a user specifies an objective function and the distributed system searches for an interpretable cleaning program (sequence of transformations) that maximizes the objective.  In contrast to special-purpose data cleaning methods, \sys is general in that one can express a large class of objectives including cleaning with integrity constraints and statistical models.  Although \sys does not currently incorporate Deep Learning, it is similar to AlphaGo in that it adaptively learns a search heuristic with a logistic regression classifier to discover systematic patterns and is efficiently parallelizable. \sys provides 3 benefits: (1) it is general vs. special case, (2) it is well-suited for cluster and cloud computing, (3) the output transform sequence is lightweight and can be easily applied as new data is added. We compare \sys to several special-purpose systems on data cleaning benchmarks and find that \sys achieves similar accuracy and runtimes using the unified and general framework.
 \end{abstract}
 
 
@@ -222,6 +216,7 @@ We compared \sys to several special case integrity constraint systems and quanti
 
 {
 %\fontsize{8.8pt}{9.7pt} \selectfont
+\small
 \bibliographystyle{abbrv}
 \bibliography{ref} 
 \scriptsize
