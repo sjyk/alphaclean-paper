@@ -36,9 +36,9 @@ The following \texttt{City} relation contains two attributes \textsf{city\_name}
   \end{table}
 
 The following transformation template uses three parameters: \texttt{attr} specifies an attribute, \texttt{srcstr} specifies a source string, and \texttt{targetstr} specifies a target string.   
-\[
+{\small\[
 T = \textsf{find\_replace}(\text{srcstr}, \text{targetstr}, \text{attr})
-\]
+\]}
 The output of the above is a transformation $T$ that finds all \texttt{attr} values equal to \texttt{srcstr} and replaces those cells with \texttt{targetstr}. 
 For instance, \texttt{find\_replace(``NYC'', ``NY'', ``city\_code'')(City)} returns a data transformation that finds records in \texttt{City} whose city\_code is ``NYC'' and replaces their value with ``NY''.
 \end{example}
@@ -60,21 +60,21 @@ $Q$ is a UDF and we do not impose any restrictions on it. In fact, one experimen
 Even so, we call out two special cases that provide optimization opportunities. 
 We define two sub-classes of quality functions: row-separable and cell-separable quality functions.
 The former expresses the overall quality based on row-wise quality function $q(r): R \mapsto [0,1]$ where $1$ implies that the record is clean:
-\[Q(R) \propto \sum_{r \in R} q(r)\]
+{\small\[Q(R) \propto \sum_{r \in R} q(r)\]}
 \noindent Similarly, a cell-separable quality function can be expressed based on a cell-wise quality function $q(r, a): (R\times A) \mapsto [0,1]$:
-\[Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)\]
+{\small\[Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)\]}
 These special cases are important because they can define hints on what types of transformations are irrelevant.
 For example, if the quality function is cell-separable, and we have identified that a set of cells $C$ are dirty (e.g., they violate constraints), then we can ignore transformations that do not modify cells in $C$.  This restricts the size the language and makes the problem much easier to solve.
 
 
 \noindent We are now ready to present data cleaning as the following optimization problem:
-\begin{problem}[Optimization Problem]
-Given a quality function $Q$, a relation $R_{dirty}$, and a language $L$, find valid program $p \in L$ that optimizes the quality function.
+\begin{problem}[$\textsf{clean}(Q,R_{dirty},L)$]
+Given a quality function $Q$, a relation $R_{dirty}$, and a language $L$, find valid program $p^* \in L$ that optimizes the quality function.
 \[
-\textsf{clean}(Q,R_{dirty},L) = ~ \max_{p \in L} Q( p(R_{dirty}) ).  
+p^* = ~ \max_{p \in L} Q( p(R_{dirty}) ).  
 \]
 \end{problem}
-$\textsf{clean}(Q,R_{dirty},L)$ defines a particular instance of the optimization problem, $p^*$ denotes the optimal program, and $p^*(R_{dirty})$ denotes the cleaned table.
+$p^*(R_{dirty})$ returns the cleaned table, and $p^*$ can be applied to any table that is union compatible with $R_{dirty}$.
 
 
 \begin{example}\label{ex3}
