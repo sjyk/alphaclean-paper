@@ -201,7 +201,7 @@ We evaluate this by artificially coupling between 1-10 records together, and cre
  \label{fig:sensitivity}}
 \end{figure*}
 
-\subsubsection{Cleaning Generalization and Overfitting}
+\subsubsection{Cleaning Generalization and Overfitting}\label{s:expoverfit}
 An important characteristic of generating cleaning solutions as {\it programs} is that we can evaluate the program's robustness in terms of machine learning concepts such as overfitting and generalization.    To this end, we examine two concepts in the context of data cleaning: regularizaton and overfitting.  We also find that \sys's high level interface is helpful for iteratively tuning the cleaning process.
 
 \stitle{Regularization}  Misspecified quality functions can cause \sys to output poorly performing cleaning programs.  We simulate this by adding random noise to the output of the quality function. \Cref{fig:sensitivity}A plots the F1-score of \sys on the FEC experiment while varying the amount of noise.  As expected, the output program's F1-score rapidly degrades as the noise increases.  

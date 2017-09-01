@@ -3,17 +3,18 @@ First, we overview the basic formalism of \sys and present its relationship to r
 
 \subsection{Data Transformations}
 We focus on data transformations that concern a single relational table. 
-Let $R$ be a relation over a set of attributes $A$, and let $\mathcal{R}$ denote the set of all possible relations over $A$.
-Let $r.a$ be the attribute value of $a \in A$ for row $r \in R$.
-$T(R): \mathcal{R} \mapsto \mathcal{R}$ is a data transformation that maps an input relation instance $R \in \mathcal{R}$ to a new (possibly cleaner) instance $R' \in \mathcal{R}$ that adheres to the same schema.  For instance, ``replace all \texttt{city} attribute values equal to {\it San Francisco} with {\it SF}'' may be one data transformation, while ``delete the $10^{th}$ record'' may be another.   Data transformations can be composed using the binary operator $\circ$:
-\[
-(T_i \circ T_j)(R) =  T_i(T_j(R))
-\]
-The composition of one or more data transformations is called a {\it cleaning program} $p$.   If $p = p' \circ T$, then let $p'$ be the parent of $p$; the parent of a single data transformation is a NOOP.  
+Let $R$ be a relation over a set of attributes $A$,  $\mathcal{R}$ denote the set of all possible relations over $A$, and $r.a$ be the attribute value of $a \in A$ for row $r \in R$.
+A data transformation $T(R): \mathcal{R} \mapsto \mathcal{R}$ maps an input relation instance $R \in \mathcal{R}$ to a new (possibly cleaner) instance $R' \in \mathcal{R}$ that is union compatible with $R$.  For instance, ``replace all \texttt{city} attribute values equal to {\it San Francisco} with {\it SF}'' may be one data transformation, while ``delete the $10^{th}$ record'' may be another.   
+Aside from union compatibility, transformations are simply UDFs.
+Although it is desirable for the transformation to be deterministic and idempotent, if they are not, it simply makes the cleaning problem harder.
+We find that nearly all cleaning transformations in existing literature satisfy these properties \ewu{(See Appendix of technical report)}. 
 
-In practice, users will specify {\it transformation templates} $T(R, [\theta_1,\cdots,\theta_k])$, and every assignment to the parameters represents one possible transformation.  
+Data transformations can be composed using the binary operator $\circ$ as follows: $(T_i \circ T_j)(R) =  T_i(T_j(R))$.
+The composition of one or more data transformations is called a {\it cleaning program} $p$.   If $p = p' \circ T$, then $p'$ is the parent of $p$; the parent of a single data transformation is a NOOP.  
+
+In practice, users will specify {\it transformation templates} $\mathbb{T}(\theta_1,\cdots,\theta_k)$, and every assignment of the parameters represents one possible transformation.  
 \begin{example}\label{ex1}
-The following relation contains two attributes \textsf{city\_name} and \textsf{city\_code}.  Suppose there is a one-to-one relationship between the two attributes. In this case, the relation is inconsistent with respect to the relationship and contains errors highlighted in \red{red}.
+The following \texttt{City} relation contains two attributes \textsf{city\_name} and \textsf{city\_code}.  Suppose there is a one-to-one relationship between the two attributes. In this case, the relation is inconsistent with respect to the relationship and contains errors highlighted in \red{red}.
 
   \begin{table}[ht!]
   \centering
@@ -34,11 +35,13 @@ The following relation contains two attributes \textsf{city\_name} and \textsf{c
 
 The following transformation template uses three parameters: \texttt{attr} specifies an attribute, \texttt{srcstr} specifies a source string, and \texttt{targetstr} specifies a target string.   
 \[
-\textsf{find\_replace}(\text{srcstr}, \text{targetstr}, \text{attr})
+T = \textsf{find\_replace}(\text{srcstr}, \text{targetstr}, \text{attr})
 \]
-Given an input relation, the template finds all \texttt{attr} values equal to \texttt{srcstr} and replaces those cells with \texttt{targetstr}. 
-For instance, \texttt{find\_replace(``NYC'', ``NY'', ``city\_code'')} defines a data transformation that fixes the error in the second attribute.
+The output of the above is a transformation $T$ that finds all \texttt{attr} values equal to \texttt{srcstr} and replaces those cells with \texttt{targetstr}. 
+For instance, \texttt{find\_replace(``NYC'', ``NY'', ``city\_code'')(City)} returns a data transformation that finds records in \texttt{City} whose city\_code is ``NYC'' and replaces their value with ``NY''.
 \end{example}
+
+Although $\mathbb{T}$ can be an arbitrary template function, our implementation makes several simplifying assumptions.  We assume that a parameter $\theta_i$ is typed as an attribute or a value.  The former means that $\theta_i$'s domain is the set of attribute names in the relation schema; the latter means that $\theta_i$'s domain is the set of cell values found in the relation, or otherwise provided by the user. This ensures that the number of data transformations is bounded.  
 
 Let $\Sigma$ be a set of distinct data transformations $\{T_1,\cdots,T_N\}$, and
 $\Sigma^*$ be the set of all finite compositions of $\Sigma$, i.e., $T_i\circ T_j$.
@@ -49,16 +52,19 @@ A program $p$ is valid if it is an element of $L$.
   Continuing \Cref{ex1}, $\Sigma$ is defined as all possible parameterizations of \texttt{find\_replace}.  Since many possible possible parameterizations are non-sensical (e.g., the source string does not exist in the relation), we may bound $\Sigma$ to only source and target strings present in each attribute's instance domain (a standard assumption in other work as well~\cite{DBLP:series/synthesis/2012Fan}).  In this case, there are $61$ possible data transformations, and $\Sigma^*$ defines any finite composition of these $61$ transformations.  The language $L$ can be further restricted to compositions of up to $k$ data transformations.  
 \end{example}
 
-Finally, let $Q(R): \mathcal{R} \mapsto [0,1]$ be a quality function where $1$ implies that the instance $R$ is clean.
-In other words, $Q$ scores each possible result of applying a program $p \in \mathcal{L}$ to an initial dirty table $R_{dirty}$.
-There are two special cases that we also consider that give us more information. 
+Finally, let $Q(R): \mathcal{R} \mapsto [0,1]$ be a quality function where $1$ implies that the instance $R$ is clean, and a lower value correspond to a dirtier table.
+Since running a program $p\in\mathcal{L}$ on the initial dirty table $R_{dirty}$ returns another table, $Q(p(R_{dirty}))$ returns a quality score for each program in the language.  
+$Q$ is a UDF and we do not impose any restrictions on it. In fact, one experiment embeds training and evaluating a machine learning model {\it within} the quality function (\Cref{s:expquant}).  Another experiment shows that \sys can be robust to random noise injected in the function (\Cref{s:expoverfit}).   
+
+Even so, we call out two special cases that provide optimization opportunities. 
 We define two sub-classes of quality functions: row-separable and cell-separable quality functions.
 The former expresses the overall quality based on row-wise quality function $q(r): R \mapsto [0,1]$ where $1$ implies that the record is clean:
 \[Q(R) \propto \sum_{r \in R} q(r)\]
 \noindent Similarly, a cell-separable quality function can be expressed based on a cell-wise quality function $q(r, a): (R\times A) \mapsto [0,1]$:
 \[Q(R) \propto \sum_{r \in R} \sum_{a \in A} q(r,a)\]
 These special cases are important because they can define hints on what types of transformations are irrelevant.
-For example, if we have a cell-separable quality function, then we know we can restrict the language of transformations to only those that modify erroneous cells and exclude those that make no change to them.
+For example, if the quality function is cell-separable, and we have identified that a set of cells $C$ are dirty (e.g., they violate constraints), then we can ignore transformations that do not modify cells in $C$.  This restricts the size the language and makes the problem much easier to solve.
+
 
 \noindent We are now ready to present data cleaning as the following optimization problem:
 \begin{problem}[Optimization Problem]
