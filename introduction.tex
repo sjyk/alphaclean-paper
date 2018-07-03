@@ -1,4 +1,24 @@
 \section{Introduction}\label{intro}\sloppy
+
+Trends
+
+1. cleaning and erros are increasingly domain specific with customized transformations (TDE, other domains)
+
+2. datasets are often a mixture of different error types, where the order and combination of transformatinos needed to address the errors are context dependent
+(what is an error in this context?)
+
+Against this trend, recent cleaning systems such as holoclean etc are focused on specific classes of data errors.  For example, semantic..., syntactic...
+
+However, it is hard to combine these together manually.  justify.
+
+Further, the data errors that exist manifest as part of data cleanng and analysis.  This suggests that it is more desirable to help users specify what quality issues exist in their datasets, rather than specify which libraries and data cleaning systems to try (and in what sequence).
+
+In this paper, we move away from specialization, and explore the opportunities of a simple, search-based data cleaning system that combines ideas from synthesis used to addressing extraction and structural errors, with semantic and value-based data cleaning operations.
+
+
+\section{Old Intro}
+
+
 It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, and
 designing algorithms and systems to automate or partially automate data cleaning continues to be an active area of research~\cite{DBLP:conf/sigmod/ChuIKW16}.
 Automation in data cleaning is challenging because real-world data is highly variable. 
