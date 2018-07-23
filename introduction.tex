@@ -1,8 +1,55 @@
 \section{Introduction}\label{intro}\sloppy
 
+\ewu{data cleaning is important and complex}
+It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, and designing algorithms and systems to automate or partially automate data cleaning continues to be an active area of research~\cite{DBLP:conf/sigmod/ChuIKW16}.
+Automation in data cleaning is challenging because real-world data is highly variable. 
+A single data set can have many different types of data corruption such as statistical outliers, constraint violations, and duplicates.
+Once an error is detected, there is a further question of how to repair this error, which often depends on how the data will be used in the future.
+
+Data cleaning is particularly challenging for data scientists and modern data analysis due to several trends.
+First, data is increasingly collected across many different data sources; each dataset can exhibit different types of errors that are domain specific.  These error types can be {\it syntactic}, due to e.g., data extraction bugs that cause multiple attributes to be concatenated into a single string, or schema errors that cause entire columns to be shifted.  They can also be {\it semantic}, such as incorrect values that must be imputed, functional dependency violations, or entity resolution violations.   Each type of error, in each domain, often requires different methods to fix them.  These can range from complex imputation algorithms that use domain-specific error models (ref signal processing and holoclean), to simple rules that are easy to report and understand~\cite{}.  
+
+Second, datasets often contain mixtures of the above errors.  These errors may be inherent during data collection (e.g., data entry errors, incorrect survey coding), or introduced due to bugs in a preceeding data extraction and cleaning pipeline.   
+
+Third, developers and users often do not know the quality characteristics and constraints of their data up front.  Instead, they often start with vague notions of what signals are associated with high quality data, and refine their understanding throughout the data cleaning process~\cite{}.
+
+\section{Scratch Text}
+For example, consider the following example of addresses.
+
+For this reason, it is desirable to have a system that optimizes the human-in-the-loop process by making it easy for the user to specific and incrementally refine their quality specification.  It should generate data cleaning programs that are understandable.    Further, the quality specification language should be sufficiently rich to support a wide variety of error types and domains.  Finally, 
+
+
+For these reasons, modern data cleaning is increasingly recognized as a highly iterative process that dominates the time spent on data science~\cite{kandel2012,krishnan2016hilda}.   We believe this is for three primary reasons.  
+
+First, cleaning and erros are increasingly domain specific with customized transformations (TDE, other domains)
+
+
+First, datasets may be collected from the internet, from external sources, or from unreliable, messy, survey collection processes.  Thus, developers and users often do not know the quality criteria and constraints that should be specified over the datasets that they work with.  Instead, they learn constraints, or loose indicators of quality throughout the cleaning process.  
+
+Second, a dataset regularly contains mixtures of different types of data errors that are highly domain specific.  
+
+Developers o
+Constraints:
+* users learn the error criteria as they clean
+* specialized engines, transformaiotns, rule types for specific error types
+* mixture of syntactic, semantic, extraction errors
+
+
+For example, consider the following dataset of unique addresses downloaded from XXX.   
+{\small\begin{verbatim}
+16 15440 Southwest Mallard Drive Appartment # 103 Portland, OR 97007
+17 15440 Southwest Mallard Drive Appartment # 101 Portland, OR 97007
+18* 15440 Southwest Mallard Drive Appartment # 102 Portland, OR
+19 15400 Southwest Mallard Drive Appartment # 105 Portland, OR 97007
+20 12805 Southwest Night Heron Lane Appartment # 103 Portland, OR 97007
+21 15400 Southwest Mallard Drive Appartment # 104 Portland, OR 97007
+\end{verbatim}}
+
+
+We show that it has the capability to wrap and support specialized data cleaning libraries such as Pandas XXX as operator transformations.
+
 Trends
 
-1. cleaning and erros are increasingly domain specific with customized transformations (TDE, other domains)
 
 2. datasets are often a mixture of different error types, where the order and combination of transformatinos needed to address the errors are context dependent
 (what is an error in this context?)
@@ -16,14 +63,16 @@ Further, the data errors that exist manifest as part of data cleanng and analysi
 In this paper, we move away from specialization, and explore the opportunities of a simple, search-based data cleaning system that combines ideas from synthesis used to addressing extraction and structural errors, with semantic and value-based data cleaning operations.
 
 
+Desired criteria
+
+can wrap black-box transformations
+can support combinations of transformations --> exstinig work corresponds to a single transformation operation (that may be performed ``holistically'' by accounting for a range of FD errors/violations)
+
+
+
 \section{Old Intro}
 
 
-It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, and
-designing algorithms and systems to automate or partially automate data cleaning continues to be an active area of research~\cite{DBLP:conf/sigmod/ChuIKW16}.
-Automation in data cleaning is challenging because real-world data is highly variable. 
-A single data set can have many different types of data corruption such as statistical outliers, constraint violations, and duplicates.
-Once an error is detected, there is a further question of how to repair this error, which often depends on how the data will be used in the future.
 
 This variability creates a tension between generality and efficiency.
 While one might want a single cleaning framework that addresses all types of errors and repair operations, it is far more efficient to consider more specialized frameworks.
