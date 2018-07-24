@@ -1,13 +1,16 @@
 \section{Introduction}\label{intro}\sloppy
 
-\ewu{data cleaning is important and complex}
 It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, and designing algorithms and systems to automate or partially automate data cleaning continues to be an active area of research~\cite{DBLP:conf/sigmod/ChuIKW16}.  Automation in data cleaning is challenging because real-world data is highly variable.  A single data set can have many different types of data corruption such as statistical outliers, constraint violations, and duplicates.  Once an error is detected, there is a further question of how to repair this error, which often depends on how the data will be used in the future.
+
+\ewu{Make clear why transformation and data quality measure is different}
 
 Data cleaning is particularly challenging for data scientists and modern data analysis due to several trends.  First, data is increasingly collected across many different data sources; each dataset can exhibit different types of errors that are domain specific.  These error types can be {\it syntactic}, due to e.g., data extraction bugs that cause multiple attributes to be concatenated into a single string, or schema errors that cause entire columns to be shifted.  They can also be {\it semantic}, such as incorrect values that must be imputed, functional dependency violations, or entity resolution violations.   Each type of error, in each domain, often requires different methods to fix them.  These can range from complex imputation algorithms that use domain-specific error models (ref signal processing and holoclean), to simple rules that are easy to report and understand~\cite{}.  \ewu{For each, there are numerous specialized solutions}
 
 Second, datasets often contain mixtures of the above errors.  These errors may be introduced at any part of the data extraction, cleaning, and processing pipeline before the devolper analyzes it.  For instance, data entry errors or incorrect survey coding may introduce semantically incorrect values for some attribute values.  In addition, data extraction or schema alignment algorithms may introduce syntactic errors where attributes are shifted or their values are concatenated.  Further, these errors are not independent---improper extraction affects the ability to interpret semantic values.  
 
-Third, developers and users often do not know the quality characteristics and constraints of their data up front.  Instead, they often start with vague notions of what signals are associated with high quality data, and refine their understanding throughout the data cleaning process~\cite{}.  This makes it difficult to use super specifalized data cleaning applications, because it is easy to overinvest time into a a single tool. \ewu{Better argument?}
+Third, developers and users often do not know the quality characteristics and constraints of their data up front.  Instead, they often start with vague notions of what signals are associated with high quality data, and refine their understanding throughout the data cleaning process~\cite{}.  This makes it difficult to use super specifalized data cleaning applications, because it is easy to overinvest time into a a single tool. \ewu{Better argument?}  \ewu{Glue story to make the systems working together}
+
+\ewu{human interfaces with quality metrics, mechanisms are data transformations, alpha clean works to combine these together.}
 
 For this reason, it is desirable to have a system that optimizes the human-in-the-loop process.  The inputs to the system should let users specify, and incrementally refine, a high-level {\it data-quality measure} as well as the transformation operations that are applicable for her application domain.  \reminder{Examples of data quality measures and transformation operations.  Make sure xforms are parameterized}
 
@@ -29,14 +32,16 @@ As \sys searches possible programs by executing candidate operations and computi
 Finally, a benefit of a simple search algorithm is that it is flexible in the optimization criteria, the library of transformation operations that are supported, and is highly parallelizable.  The latter aspect has the capability of leveraging modern cloud and GPU infrastructure to cheaply parallelize the search.  Our experiments show near-linear scalability as the number of nodes increases.
 Across 8 real-world datasets used in prior data cleaning literature, we show that \sys matches or exceeds the cleaning accuracy and exhibits competitive run-times to state-of-the-art approaches that are specialized to a specific error domain (constraint, statistical, or quantitative errors).  
 
+The highlight of \sys is its flexibility to the variety and combination of data error types and cleaning transformation.   To show that the general approach does not degrade data cleaning quality too much, we compared with recently reported results from state-of-the-art systems, \sys performs comparably in accuracy and performance.
 
-To summarize, our contributions include:
+
+\noindent To summarize, our contributions include:
 \begin{itemize}[leftmargin=*, topsep=0mm, itemsep=0mm]
   \item The design and evaluation of a general search-based approach to data cleaning, that combines automated cleaning for arbitrary combinations of syntactic and semantic data errors.
   \item The development of decomposable data cleaning measures that are amenable to parallel execution.
   \item A suite of pragmatic optimizations, such as fast pruning using predictive models, multi-node parallelization, and data sharing to reduce network communication bottlenecks, that reduce the runtime by \ewu{XXX$\times$}.
   \item A systematic study of the benefits and limitations of \sys in terms of data cleaning accuracy (precision, recall), and the runtime.  We show that \sys can solve incremental refinements of the data quality measure $yyy\times$ faster than from scratch, and that \ewu{SOME OTHER FINDING}
-  \item Finally, we show that \sys can solve existing data cleaning benchmarks at competitive runtimes and accuracies as existing specialized data cleaning systems.  We believe this is not necessarily due to superiority of \sys, but may be a symptom of limitations of existing cleaning benchmarks, which have simple structure.
+  % \item Finally, we show that \sys can solve existing data cleaning benchmarks at competitive runtimes and accuracies as existing specialized data cleaning systems.  We believe this is not necessarily due to superiority of \sys, but may be a symptom of limitations of existing cleaning benchmarks, which have simple structure.
 
 \end{itemize}
 
