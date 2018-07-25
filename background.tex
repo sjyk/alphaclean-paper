@@ -1,5 +1,9 @@
 \section{Problem Definition}
-First, we overview the basic formalism of \sys and present its relationship to related work.
+\sys takes two inputs---a library of data transformations, and a data quality measure---and generates a sequence of transformations that maximize the quality measure.
+Although the definitions of the transformations and quality measures can sometimes be similar, they are distinct in that the former is a mechanism to optimize the latter.    This section formally defines the optimization problem that \sys is designed to solve.      We also pose common data cleaning problems into this problem definition.
+
+
+\ewu{We need to make the distinctions between transforms and quality crystal clear to the reader!  They are easy to mix up, since sometimes we pick transformationsbased on the quality measure and vice versa!!}
 
 \subsection{Data Transformations}
 We focus on data transformations that concern a single relational table. 
@@ -52,6 +56,8 @@ A program $p$ is valid if it is an element of $L$.
   Continuing \Cref{ex1}, $\Sigma$ is defined as all possible parameterizations of \texttt{find\_replace}.  Since many possible possible parameterizations are non-sensical (e.g., the source string does not exist in the relation), we may bound $\Sigma$ to only source and target strings present in each attribute's instance domain (a standard assumption in other work as well~\cite{DBLP:series/synthesis/2012Fan}).  In this case, there are $61$ possible data transformations, and $\Sigma^*$ defines any finite composition of these $61$ transformations.  The language $L$ can be further restricted to compositions of up to $k$ data transformations.  
 \end{example}
 
+\subsection{Data Quality Measures}
+
 Finally, let $Q(R): \mathcal{R} \mapsto [0,1]$ be a quality function where $1$ implies that the instance $R$ is clean, and a lower value correspond to a dirtier table.
 Since running a program $p\in\mathcal{L}$ on the initial dirty table $R_{dirty}$ returns another table, $Q(p(R_{dirty}))$ returns a quality score for each program in the language.  
 $Q$ is a UDF and we do not impose any restrictions on it. In fact, one experiment embeds training and evaluating a machine learning model {\it within} the quality function (\Cref{s:expquant}).  Another experiment shows that \sys can be robust to random noise injected in the function (\Cref{s:expoverfit}).   
@@ -66,9 +72,9 @@ $Q(R) \propto \sum\nolimits_{r \in R} \sum_{a \in A} q(r,a)$.
 These special cases are important because they can define hints on what types of transformations are irrelevant.
 For example, if the quality function is cell-separable, and we have identified that a set of cells $C$ are dirty (e.g., they violate constraints), then we can ignore transformations that do not modify cells in $C$.  This restricts the size the language and makes the problem much easier to solve.
 
-
-\noindent We are now ready to present data cleaning as the following optimization problem:
-\begin{problem}[$\textsf{clean}(Q,R_{dirty},L)$]
+\subsection{Problem Definition}
+We are now ready to present data cleaning as the following optimization problem:
+\begin{problem}[AlphaClean Problem]%[$\textsf{clean}(Q,R_{dirty},L)$]
 Given quality function $Q$, relation $R_{dirty}$, and language $L$, find valid program $p^* \in L$ that optimizes $Q$:
 \[
 p^* = ~ \max_{p \in L} Q( p(R_{dirty}) ).  
@@ -92,8 +98,33 @@ By searching through all possible programs up to length 3 in $L$, we can find a 
 \end{example}
 
 
-\subsection{Problem Expressiveness}\label{s:probexpressiveness}
-We now show how $\textsf{clean}(Q,R_{dirty},L)$ can be used to express a wide range data cleaning problems that have traditionally be tackled with specialized systems.  We present examples from three major classes of problems: constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.  
+
+\stitle{Approach Overview and Challenges}
+Our problem formulation is a direct instance of {\it planning} in AI~\cite{russell1995modern}, where an agent identifies a sequence of actions to achieve a goal.  In our setting, the agent (\sys) explores a state space ($\mathcal{R}$) from an initial state (the input relation) by following transitions (applying $T_i \in \Sigma$) such that the sequence of actions is valid (within $\Sigma^*$) and the quality of the final state ($Q(R_{final})$) is maximized.  
+
+For readers familiar with stochastic processes, this search problem is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$.
+
+One may be hesitant in adopting our problem formulation because, although it is sufficiently general to model many existing data cleaning problems, such generality often comes at the expense of runtime performance.   The planning problem is APX-Hard, meaning there does not exist a polynomial time approximation unless P=NP.  
+Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
+Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem. 
+
+For this reason, {\it the key technical challenge is to show that \sys can solve data cleaning problems with comparable run-time as existing specialized systems, and can be easily extended to support new optimizations.}
+Despite the problem's worst-case complexity, 
+recent successes in similar planning problems---ranging from AlphaGo~\cite{silver2016mastering} to automatically playing Atari video games~\cite{mnih2015human} have shown that a prudent combination Machine Learning and distributed search can find practical solutions by leveraging the structure of the problem. 
+Not every problem instance is as pathological as the worst case complexity suggests, and there are many reasonable local optima.
+
+
+
+
+
+
+
+\subsection{Example Problem Instances}\label{s:probexpressiveness}
+We now show how three major classes of data cleaning problems based on integrity constraints, statistical models, and programming by demonstration can be expressed in terms of the \textsc{AlphaClean Problem}.   A benefit of this is that mixtures of these problems can be easily composed by defining a new data quality measure as, for example, a linear combination of more specialized measures.
+
+%  $\textsf{clean}(Q,R_{dirty},L)$ can be used to express a wide range data cleaning problems that have traditionally be tackled with specialized systems.  
+
+% We present examples from three major classes of problems: constraint-based cleaning that use integrity constraints to identify and reconcile errors, statistical model-based  cleaning that identify and fix data values that fall outside of an expected statistical model, and programming by demonstration approaches that synthesize cleaning programs based on user-provided example outputs.  
 
 \stitle{Constraint-based Systems}
 The formal notion of constraint-based errors have been used as early as Codd's seminal relational model paper~\cite{codd1970relational}.
@@ -154,22 +185,6 @@ Consider the example table as before (where managers can't earn less than employ
 The quality function measures the degree to which the table matches the human examples after applying the data transformations.
 In these systems, the language is often highly restricted.
 For example, \cite{wrangler, jin2017foofah} use the domain-specific language proposed in~\cite{raman2001potter}.
-
-\subsection{Approach Overview and Challenges}
-Our problem formulation is a direct instance of {\it planning} in AI~\cite{russell1995modern}, where an agent identifies a sequence of actions to achieve a goal.  In our setting, the agent (\sys) explores a state space ($\mathcal{R}$) from an initial state (the input relation) by following transitions (applying $T_i \in \Sigma$) such that the sequence of actions is valid (within $\Sigma^*$) and the quality of the final state ($Q(R_{final})$) is maximized.  
-
-For readers familiar with stochastic processes, this search problem is equivalent to a deterministic Markov Decision Process (MDP), where the states are $\mathcal{R}$, the actions $\Sigma$, the transition function updates the instance with the transformation, the initial state is the dirty instance $R_{dirty}$, and the reward function is $Q$.
-
-One may be hesitant in adopting our problem formulation because, although it is sufficiently general to model many existing data cleaning problems, such generality often comes at the expense of runtime performance.   The planning problem is APX-Hard, meaning there does not exist a polynomial time approximation unless P=NP.  
-Let $R$ be a single-attribute relation of Booleans. Let $L$ be the set of all assignments to a single value.
-Given a list of $N$ Boolean clauses over all the boolean variables, let $Q$ assign to each record one minus the fraction of clauses that evaluate to true. This formulation is equivalent to MAX-SAT and solution to the optimization problem. 
-
-For this reason, {\it the key technical challenge is to show that \sys can solve data cleaning problems with comparable run-time as existing specialized systems, and can be easily extended to support new optimizations.}
-Despite the problem's worst-case complexity, 
-recent successes in similar planning problems---ranging from AlphaGo~\cite{silver2016mastering} to automatically playing Atari video games~\cite{mnih2015human} have shown that a prudent combination Machine Learning and distributed search can find practical solutions by leveraging the structure of the problem. 
-Not every problem instance is as pathological as the worst case complexity suggests, and there are many reasonable local optima.
-
-
 
 
 

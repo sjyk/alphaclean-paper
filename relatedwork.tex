@@ -3,15 +3,13 @@ Data cleaning is nearly as old as the relational model~\cite{codd1970relational}
 The recent advances in scalable data cleaning~\cite{wang1999sample, DBLP:journals/debu/KrishnanWFGKM015, khayyat2015bigdansing, altowim2014progressive} has revealed {\it human-time}---finding and understanding errors, formulating desired characteristics of the data, writing and debugging the cleaning pipeline, and basic software engineering---as a dominant bottleneck in the entire data cleaning process~\cite{krishnan2016hilda}.  
 \sys aims to address this bottleneck by using the quality function and transformation language as a flexible and expressive declarative interface to separate high level cleaning goals from how the goals are achieved.   
 
-%However, \emph{machine time} is only part of the story and the \emph{human time} of data cleaning is known to be significant.  \sys aims to reduce the human time in writing data cleaning scripts by allowing the data scientist to model the data at a high-level and the system searches for the appropriate low-level transformations.  
-
-%\stitle{Automatic Data Cleaning}  Automatic cleaning systems express data errors as violations of logical constraints and seek to edit the database in a way to resolve such violations.  The Chase~\cite{aho1979theory,maier1979testing} serves as the basis of 
 
 \stitle{Machine Learning in Data Cleaning} Machine learning has been widely used to improve the efficiency and/or reliability of data cleaning~\cite{DBLP:journals/pvldb/YakoutENOI11,yakout2013don,gokhale2014corleone}.
 It is commonly used to predict an appropriate replacement attribute value for dirty records~\cite{yakout2013don}.
 Increasingly, it is used in combination with crowd-sourcing to extrapolate patterns from smaller manually-cleaned samples~\cite{gokhale2014corleone,DBLP:journals/pvldb/YakoutENOI11} and to improve reliability of the automatic repairs~\cite{DBLP:journals/pvldb/YakoutENOI11}.
 Concepts such as active learning can be leveraged to learn an accurate model with a minimal number of examples~\cite{DBLP:journals/pvldb/MozafariSFJM14}.
-Recently, HoloClean~\cite{rekatsinas2017holoclean} uses probabilistic graphical models to combine multiple quality signals such as lookup tables and constraints to predict cell-level repairs.
+
+Recently, HoloClean~\cite{rekatsinas2017holoclean} uses probabilistic graphical models to combine multiple quality signals such as lookup tables and constraints to predict cell-level repairs. \ewu{Clearly state what types of errors or data transforms HoloClean is specialized to!!}
 Although related, \sys uses machine learning to steer the search process {\it away} from low quality candidate programs, rather than to propose ideal cleaning programs.  From this perspective, \sys can be extended to leverage ideas from existing work to steer the search process {\it towards} promising programs.  
 
 % For example, Yakout et al. train a model that evaluates the likelihood of a proposed replacement value \cite{yakout2013don}.
