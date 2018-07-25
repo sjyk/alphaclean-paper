@@ -50,7 +50,7 @@ However, the traversal order and expansion policy is important in this search pr
 \stitle{DFS} Depth-first search only needs to materialize the intermediate results for a single program at a time, however it is highly inefficient since the vast majority of programs that it explores will have low quality scores.  
 
 
-\subsection{Search Algorithm and Optimizations}
+\subsection{Core Search Algorithm}
 Best-first search expands the most promising nodes chosen according to a specified cost function.
 We consider a greedy version of this algorithm, which removes nodes on the frontier that are more than $\gamma$ times worse than the current best solution (\Cref{alg:main}).
 Making $\gamma$ smaller makes the algorithm asympotically consistent but uses more memory to store the frontier, whereas $\gamma=1$ is a pure greedy search with minimal memory requirements.  
