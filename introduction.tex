@@ -1,5 +1,29 @@
 \section{Introduction}\label{intro}\sloppy
 
+intro:
+pander to databases: 
+objective?  downstream quality function
+what types of pipelines? how to model?
+why not the closest hyperparameter search?
+
+naive 1: AutoML
+most param settings is bad.  want to prune those out.
+very delayed feedback because need to actually execute the pipeline before seeing results (and executing the pipeline can be very expensive)
+
+naive 2: program synthesis
+explotion in branching factor by allowing all possible transforms
+broader objective function class than foofah
+
+mixture of simple operators.  Not learning a language
+experiments are too simple.  
+
+* there is no transformation holoclean can do that we cannot do
+* strip things down to clearly focus on the search algorithm 
+* the transforms are actually simple in any system, it's how they are selected and parameterized that is challenging.  
+
+we help you compose the objectives using a simple API that simply prioritizes features correlated with the error
+
+
 It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, where an analyst may spend upwards of 80\% of the analysis effort on cleaning and prepper the data.  A core challenge in data cleaning is that the solutions are incredibly domain and application-specific, and the analyst must explore a massive space of possible errors {\it and} data cleaning operations in order to identify the appropriate sequence of data cleaning transformations that is appropriate for her problem.
 
 Consider a single logical cleaning operation such as addressing outlier values.  There is a large space of physical data cleaning operations: simply detecting the outliers could utilize a fixed threshold, an unsupervised statistical model, a problem-specific model (e.g., of EEG signals~\cite{}), a based on constraints.  Each operation further burdens the developer with numerous choices to set its parameters---what threshold?  How many clusters? What model features?   Once the outliers have been detected, there is a similar buffet of options to actually replace the outlier value.     Unfortunately, data cleaning is challenging because even a single data set can have many different types of errors (e.g., outliers, constraint violations, duplicates, mis-spellings, incorrect orderings).
