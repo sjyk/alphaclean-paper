@@ -1,8 +1,8 @@
 \section{Introduction}\label{intro}\sloppy
 Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}. 
 The research community is developing increasingly sophisticated learning-based methods for detecting and repairing errors in large datasets~\cite{dc, rekatsinas2017holoclean, DBLP:journals/pvldb/KrishnanWWFG16, DBLP:conf/sigmod/ChuIKW16, mudgal2018deep, doan2018toward}.
-As the complexity of the cleaning algorithms grows, so does the number of user-facing parameters.
-The burden on the analyst is gradually shifting away from the design of hand-written data cleaning programs, to parameter exploration and tuning in a sequence of multiple such automated systems.
+As complexity grows, so does the number of user-facing parameters.
+The burden on the analyst is gradually shifting away from the design of hand-written data cleaning programs, to parameter tuning in a sequence of multiple such automated systems.
 Therefore, there is a need for systems that automatically tune and optimize parameters in data transformation and cleaning pipelines.
 
 A starting point is the recent work on systems for \emph{hyperparameter tuning} for machine learning~\cite{li2017hyperband, sparks2017keystoneml, baylor2017tfx, golovin2017google, liaw2018tune}.
@@ -14,7 +14,7 @@ Given one of these proxy accuracy metrics, is black-box hyperparameter tuning su
 
 \begin{figure}[t]
 \centering
- \includegraphics[width=\columnwidth]{figures/teaser-experiment.png}
+ \includegraphics[width=0.9\columnwidth]{figures/teaser-experiment.png}
  \caption{\small 10\% of a dataset of dictionary words are duplicated with randomly generated spelling errors. The dataset is to be cleaned with a similarity matcher and a spell checker. Holistically, tuning the parameters of both with \textsf{python hyperopt} (BB-Full) is inefficient due to interactions between the two data cleaning options. Rather than treating the entire pipeline as a black box, \sys provides an API for a pipeline of data cleaning operations to suggest candidate edits and algorithm the algorith reasons about their accuracy in composition. \label{fig:teaser}}
 \end{figure}
 
