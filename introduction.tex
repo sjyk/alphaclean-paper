@@ -15,7 +15,7 @@ Given one of these proxy accuracy metrics, is black-box hyperparameter tuning su
 \begin{figure}[t]
 \centering
  \includegraphics[width=0.9\columnwidth]{figures/teaser-experiment.png}
- \caption{\small 10\% of a dataset of dictionary words are duplicated with randomly generated spelling errors. The dataset is to be cleaned with a similarity matcher and a spell checker. Holistically, tuning the parameters of both with \textsf{python hyperopt} (BB-Full) is inefficient due to interactions between the two data cleaning options. Rather than treating the entire pipeline as a black box, \sys provides an API for a pipeline of data cleaning operations to suggest candidate edits and algorithm the algorith reasons about their accuracy in composition. \label{fig:teaser}}
+ \caption{\small 10\% of a dataset of dictionary words are duplicated with randomly generated spelling errors. The dataset is to be cleaned with a similarity matcher and a spell checker. Holistically, tuning the parameters of both with \textsf{python hyperopt} (BB-Full) is inefficient due to interactions between the two data cleaning options. It takes over 3x the amount of search time for the joint optimization to exceed the best tuned single cleaning method (BB-Edit and BB-SpellCheck) \label{fig:teaser}}
 \end{figure}
 
 A subtle challenge is that existing black-box search algorithms would treat the entire data cleaning pipeline as a monolithic parametrized unit.
