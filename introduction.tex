@@ -31,15 +31,15 @@ In this case, we are lucky; the joint optimization converges to a reasonable sol
 However, as we scale to more complex and larger scale problems, avoiding local optima becomes a daunting challenge.
 Interactions between methods may not simply be redundancies, and improperly tuned techniques might even reverse the changes made by previous steps.
 We arrived at a simple architecture to address this issue by rethinking the parameter search process.
-For a given parameter setting, every data cleaning method in the pipeline suggests \emph{candiate} repairs to a dataset.
+For a given parameter setting, every data cleaning method in the pipeline suggests \emph{candidate} repairs to a dataset.
 These repairs are aggregated into a large set of possible transformations to apply
 Then, a meta-algorithm searches over sequential compositions of the set of generated candidates.
 The size of the search space can be controlled by how many parameter settings are considered and how coarse- or fine-grained the repairs are.
 This process allows the system to leverage partial repairs from the pipeline when beneficial and naturally avoid problems of redundancy.
 
-More importantly, this generate-then-search process is specialized to the idiosyncracies of data cleaning.
-Data cleaning is fundementally a form of constraint satisfaction---easy to verify but hard to satisfy.
-So, candiate generation can be much more expensive than accuracy evaluation (e.g., for Denial Constraints).
+More importantly, this generate-then-search process is specialized to the idiosyncrasies of data cleaning.
+Data cleaning is fundamentally a form of constraint satisfaction---easy to verify but hard to satisfy.
+So, candidate generation can be much more expensive than accuracy evaluation (e.g., for Denial Constraints).
 Existing search algorithms implicitly pipeline these two steps; whereas, we decouple these two steps where candidate repairs can be generated in a separate thread and the search algorithm can proceed independently.
 
 We implement this search framework in a system called \sys.
@@ -48,7 +48,7 @@ We assume that each component specifies its repairs in terms of cell-replacement
 A parameter generator thread supplies assignments to each of the data cleaning methods in the library and yields candidate repairs as they are generated to a set.
 A greedy tree-search algorithm runs in parallel by sequencing candidate repairs and computing the resulting accuracy measure.
 \sys can also execute in a divide-and-conquer fashion by generating candidate parameters on different partitions of data.
-It also provides utilites for leveraging information across partitions, by learns a prediction model to estimate the expected improvement of different transformation operators (e.g., some library components might be irrelevant).  
+It also provides utilities for leveraging information across partitions, by learns a prediction model to estimate the expected improvement of different transformation operators (e.g., some library components might be irrelevant).  
 
 \noindent Our contributions include:
 \begin{itemize}[leftmargin=*, topsep=0mm, itemsep=0mm]
