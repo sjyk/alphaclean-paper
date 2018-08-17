@@ -1,88 +1,61 @@
 \section{Introduction}\label{intro}\sloppy
+Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}. 
+The research community is developing increasingly sophisticated learning-based methods for detecting and repairing errors in large datasets~\cite{dc, rekatsinas2017holoclean, DBLP:journals/pvldb/KrishnanWWFG16, DBLP:conf/sigmod/ChuIKW16, mudgal2018deep, doan2018toward}.
+As the complexity of the cleaning algorithms grows, so does the number of user-facing parameters.
+The burden on the analyst is gradually shifting away from the design of hand-written data cleaning programs, to parameter exploration and tuning in a sequence of multiple such automated systems.
+Therefore, there is a need for systems that automatically tune and optimize parameters in data transformation and cleaning pipelines.
 
-intro:
-pander to databases: 
-objective?  downstream quality function
-what types of pipelines? how to model?
-why not the closest hyperparameter search?
+A starting point is the recent work on systems for \emph{hyperparameter tuning} for machine learning~\cite{li2017hyperband, sparks2017keystoneml, baylor2017tfx, golovin2017google, liaw2018tune}.
+These systems are alternatively described as ``black box'' search algorithms as they make few assumptions about the underlying structure of the parameter space---simply put, generality at the cost of runtime.
+In machine learning, the objective of the search process is clear: the prediction error on a validation set gives an estimate of accuracy. 
+In data cleaning, there is a chicken-and-egg problem, where accuracy is defined in terms of recovering the true values of cells in a database, but knowing the true values in advance would defeat the purpose of cleaning.
+In practice, we often use a proxy for accuracy such as the satisfaction of integrity constraints, how well it fits a statistical model, or accuracy on gold standard data.
+Given one of these proxy accuracy metrics, is black-box hyperparameter tuning sufficient for applications in data cleaning optimization?
 
-naive 1: AutoML
-most param settings is bad.  want to prune those out.
-very delayed feedback because need to actually execute the pipeline before seeing results (and executing the pipeline can be very expensive)
-
-naive 2: program synthesis
-explotion in branching factor by allowing all possible transforms
-broader objective function class than foofah
-
-mixture of simple operators.  Not learning a language
-experiments are too simple.  
-
-* there is no transformation holoclean can do that we cannot do
-* strip things down to clearly focus on the search algorithm 
-* the transforms are actually simple in any system, it's how they are selected and parameterized that is challenging.  
-
-we help you compose the objectives using a simple API that simply prioritizes features correlated with the error
+A subtle challenge is that existing black-box search algorithms treat the pipeline as a monolithic unit.
+They do not explcitly reason about interactions between pipeline components, and those effects are latently captured in the parameter space and accuracy metric.
+Consider a simple experiment: we have a dataset of 1000 dictionary words (10\% of which are duplicated with randomly generated spelling errors affecting 1-3 characters), and cleaned by an edit distance similarity matcher with a tunable threshold and a spell checker with a tunable recommendation parameter.
+ One would expect that jointly optimizing over the entire pipeline (cascading the matcher and spellchecker) with a black-box optimizer is more reliable than simply tuning either of the single cleaning methods. 
+Figure \ref{fig:teaser} (implemented with \textsf{python hyperopt}) illustrates that this is not exactly the case, it takes over 3x the amount of search time for the joint optimization to exceed the best tuned single cleaning method.
+This experiment is designed such that there is redudancy in the pipeline, where duplicates can be resolved either by spellcheck or matching.
+The joint optimization method wastes evaluation cycles exploring parameter settings where both techniques significantly overlap.
 
 
-It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, where an analyst may spend upwards of 80\% of the analysis effort on cleaning and prepper the data.  A core challenge in data cleaning is that the solutions are incredibly domain and application-specific, and the analyst must explore a massive space of possible errors {\it and} data cleaning operations in order to identify the appropriate sequence of data cleaning transformations that is appropriate for her problem.
+\begin{figure}[t]
+\centering
+ \includegraphics[width=\columnwidth]{figures/teaser-experiment.png}
+ \caption{\small 10\% of a dataset of dictionary words are duplicated with randomly generated spelling errors. The dataset is to be cleaned with a similarity matcher and a spell checker. Holistically, tuning the parameters of both with \textsf{python hyperopt} (BB-Full) is inefficient due to interactions between the two data cleaning options. Rather than treating the entire pipeline as a black box, \sys provides an API for a pipeline of data cleaning operations to suggest candidate edits and algorithm the algorith reasons about their accuracy in composition. \label{fig:teaser}}
+\end{figure}
 
-Consider a single logical cleaning operation such as addressing outlier values.  There is a large space of physical data cleaning operations: simply detecting the outliers could utilize a fixed threshold, an unsupervised statistical model, a problem-specific model (e.g., of EEG signals~\cite{}), a based on constraints.  Each operation further burdens the developer with numerous choices to set its parameters---what threshold?  How many clusters? What model features?   Once the outliers have been detected, there is a similar buffet of options to actually replace the outlier value.     Unfortunately, data cleaning is challenging because even a single data set can have many different types of errors (e.g., outliers, constraint violations, duplicates, mis-spellings, incorrect orderings).
+In this case, we are lucky; the joint optimization converges to a reasonable solution given enough time.
+However, as we scale to more complex and larger scale problems, avoiding local optima becomes a daunting challenge.
+Interactions between methods may not simply be redundancies, and improperly tuned techniques might even reverse the changes made by previous steps.
 
-To address this problem in practice, organizations often curate a library of common implementations of data cleaning operations (e.g., a set of EEGspecific outlier detectors) and develop data cleaning pipelines to more easily combine them into data cleaning pipelines~\cite{krishnan2016hilda}.  Similarly, a number of declarative data cleaning frameworks~\cite{DBLP:journals/pvldb/HaasKWF015,gokhale2014corleone,stonebraker2013data,giannakopoulou2017cleanm} provide high-level APIs and languages to address broad classes of data cleaning problems.  Although these solutions help address the engineering and execution aspects to complex data cleaning problems, the developer is still faced, at each step, with numerous choices in terms of the operator to use, how to set its parameters, and the order to compose the operators.  There is a need to develop \textbf{automated approaches to identify, parameterize, and compose data cleaning operators to satisfy the user's cleaning goal}.  Unfortunately, this is challenging for a number of reasons.
+We arrived at a simple architecture to address this issue by rethinking the parameter search process.
+For a given parameter setting, every data cleaning method in the pipeline suggests \emph{candiate} repairs to a dataset.
+These repairs are aggregated into a large set of possible transformations to apply
+Then, a meta-algorithm searches over sequential compositions of the set of generated candidates.
+The size of the search space can be controlled by how many parameter settings are considered and how coarse- or fine-grained the repairs are.
+This process allows the system to leverage partial repairs from the pipeline when beneficial and naturally avoid problems of redundancy.
 
-%There is a need to automate data cleaning~\cite{DBLP:conf/sigmod/ChuIKW16}
+More importantly, this generate-then-search process is specialized to the idiosyncracies of data cleaning.
+Data cleaning is fundementally a form of constraint satisfaction---easy to verify but hard to satisfy.
+So, candiate generation can be much more expensive than accuracy evaluation (e.g., for Denial Constraints).
+Existing search algorithms implicitly pipeline these two steps; whereas, we decouple these two steps where candidate repairs can be generated in a separate thread and the search algorithm can proceed independently.
 
+We implement this search framework in a system called \sys.
+\sys is provided with a library of data cleaning components and specification of their free parameters. 
+We assume that each component specifies its repairs in terms of cell-replacement, the same model as in recent systems like Holoclean~\cite{rekatsinas2017holoclean}.
+A parameter generator thread supplies assignments to each of the data cleaning methods in the library and yields candidate repairs as they are generated to a set.
+A greedy tree-search algorithm runs in parallel by sequencing candidate repairs and computing the resulting accuracy measure.
+\sys can also execute in a divide-and-conquer fashion by generating candidate parameters on different partitions of data.
+It also provides utilites for leveraging information across partitions, by learns a prediction model to estimate the expected improvement of different transformation operators (e.g., some library components might be irrelevant).  
 
-% data is increasingly collected across many different data sources; each dataset can exhibit different types of errors that are domain specific.
-
-First, there can be a mixture of many error types.    These error types can be {\it syntactic}, due to e.g., data extraction bugs that cause multiple attributes to be concatenated into a single string, or schema detection errors that cause entire columns to be shifted.  They can also be {\it semantic}, such as incorrect attribute values, functional dependency violations, or sequential data that does not conform to an expected trend.   Each type of error, in each domain, often requires different methods to fix them.  These can range from complex imputation algorithms that use domain-specific error models (ref signal processing and holoclean), to simple rules that are easy to report and understand~\cite{}.  \ewu{For each, there are numerous specialized solutions}
-
-Second, datasets often contain mixtures of the above errors.  These errors may be introduced at any part of the data extraction, cleaning, and processing pipeline before the devolper analyzes it.  For instance, data entry errors or incorrect survey coding may introduce semantically incorrect values for some attribute values.  In addition, data extraction or schema alignment algorithms may introduce syntactic errors where attributes are shifted or their values are concatenated.  These errors are not independent. For instance, the above concatenation error affects the ability to interpret semantic values.  
-
-Most importantly, developers and users often do not know the quality characteristics and constraints of their data up-front.  Instead, they examine their analysis output to develop hypotheses about the presence and type of errors in their data; they then iteratively refine their understanding throughout the data cleaning process~\cite{krishnan2016hilda}.  The developer then needs to try different incantations of cleaning operators to test her hypothesis.   However, the need for the developer to reason about the application-level data error characteristics {\it and} manually explore the physical operator space impedes the end-to-end cleaning process.   
-
-Ultimately, data cleaning is a human-in-the-loop process driven by the user's domain expertise.  Thus, the input and output interfaces should be flexible and optimized for the user.   Users should be able to easily specify, and rapidly refine, potentially arbitrary {\it data-quality measures}.  It should also be easy to pick data transformation operators from a pre-existing library, or wrap specialized data cleaning libraries as user-defined operators.  To ensure that the system output is easy to understand, the system should generate simple programs composed of the user-specific transformation operators, rather than directly fixing the database contents.
-
-A naive approach is to layer a black-box hyper-parameter tuning algorithm on an existing data cleaning framework.  The selection of operators, how they are combined, and how their parameters are set, can be modeled as a separate hyperparemeter that an optimization algorithm such as X, Y, or Z will explore.  The user's task is to specify and tune the optimization objective to lead the search towards an acceptable solution.   \ewu{THere's a gap here that I'm missing}
-
-However this approach ignores important aspects of data cleaning problems that enable more efficient and flexible approaches.  First, data cleaning programs are often a sequence of transformations applied one after the other, thus the entire space of hyperparameters does not need to be learned jointly.  Second, a given transformation may be applied multiple times, whereas a black-box hyperparameter search algorithm would need to know up front the maximum set of trnsaforamiotns and the parameters. Third, the transformations are not commutative, and prior transformations can affect subsequent transformations.  This meoans that local decisions need to account for how they may affect later transformations.  
-
-
-%Automated data cleaning takes as input a {\it specification} that characterizes the errors in the dataset, as well as a set of allowable {\it data transformations} (e.g., \texttt{set(rowi, attrj, val)}), and automatically applies these transformations to fix the errors.  
-
-% Data  cleaning is composed of pipelines.  in some cases, the pipelines are largely fixed, and developers adjust the parameters of operators in the pipeline, or the pipeline itself, in response to changes in the input data.  In other cases, the core set of parameterized operators are know apriori, but the specific parameterization and pipeline of operators that should be run to achieve a desired data cleaning goal is not clear up front. The latter can happen at a regular basis as new data cleaning scenarios arise (say, due to new customers), a new data source is added to an analysis, or when a data source changes substantially.  In these cases, developers must construct the pipeline and parameterization in order to achieve an often ill-defined cleaning goal.
-
-
-\stitle{A Simple, General Approach}
-In this paper, we take a step back from the specialized systems approach, and ask if a simple, general meta-algorithm can be used to address common data cleaning problems.  Our primary hypothesis is that data cleaning errors are typically highly structured, and a learning-based approach that can identify these structures for different cleaning problems.   
-Data errors are often systematic where they are correlated with with certain attributes and values in the dataset~\cite{rekatsinas2017holoclean,DBLP:journals/pvldb/KrishnanWWFG16}.
-Consequently, as more data is cleaned, we can better identify common patterns to prioritize the search on future data.
-
-
-
-
-To this end, we design and evaluate \sys, which employs a simple tree search algorithm that finds a sequence of data transformation operations to maximize a user-specified data quality measure.   The user provides parameterized operators and the system identifiez the specific parameterizations throughout the search process.  In our experiments, we show how external data cleaning libraries such as \ewu{XXX and YYY} can be wrapped as parameterized black-boxes.  Similarly, the user can incrementally add additional constraints and conditions to the data quality measure.  These can be expressed as generic Python functions over a dataset, and we describe optimizations based on the distributive or algebraic properties of commen quality measures that capture e.g, entity resolution, functional dependencies.
-
-As \sys searches possible programs by executing candidate operations and computing the resulting quality measure, it learns a prediction model to estimate the expected improvement of different transformation operators to quickly prune the search space.  In our work, we show that a simple linear classifier is effective for a wide variety of data cleaning datasets used in the current literature, however more complex prediction models such as neural networks~\cite{} may be used for more complex or widely used problems that can generate lots of training data.   A benefit of learning these models is that \sys can bootstrap new data cleaning problems by using previously learned models; we show how \sys can more quickly generate data cleaning programs when users can iteratively refine their data quality measures.
-
-The highlight of a simple search algorithm is that it is flexible to the optimization criteria and the library of transformation operators, and can benefit from the considerable recent advances in planning optimization~\cite{silver2016mastering}. We illustrate one such advance by leveraging modern cloud and GPU infrastructure to cheaply parallelize the search algorithm.  Our experiments show near-linear scalability as the level of parallelism increases, and even faster when using learned rules for pruning.
-
-Finally, one concern is that a generic optimization algorithm may cripple the data-cleaning quality.  To understand this, we evaluated \sys on \ewu{N} existing data-cleaning benchmarks, and find that \sys performs comparably in accuracy and runtime with recently reported results from state-of-the-art systems.  
-
-% Finally, the highlight of \sys is its flexibility to the variety and combination of data error types and cleaning transformation.  
-
-
-% Across 8 real-world datasets used in prior data cleaning literature, we show that \sys matches or exceeds the cleaning accuracy and exhibits competitive run-times to state-of-the-art approaches that are specialized to a specific error domain (constraint, statistical, or quantitative errors).  
-
-
-
-\noindent To summarize, our contributions include:
+\noindent Our contributions include:
 \begin{itemize}[leftmargin=*, topsep=0mm, itemsep=0mm]
-  \item The design and evaluation of a general search-based approach to data cleaning, that combines automated cleaning for arbitrary combinations of syntactic and semantic data errors.
-  \item The development of decomposable data cleaning measures that are amenable to parallel execution.
+  \item Rethinking parameter optimization in data cleaning and data transformation with a novel candidate-search framework called \sys. \sys includes an API for specifying data cleaning operations as well as accuracy metrics.
   \item A suite of pragmatic optimizations, such as fast pruning using predictive models, multi-node parallelization, and data sharing to reduce network communication bottlenecks, that reduce the runtime by \ewu{XXX$\times$}.
   \item A systematic study of the benefits and limitations of \sys in terms of data cleaning accuracy (precision, recall), and the runtime.  We show that \sys can solve incremental refinements of the data quality measure $yyy\times$ faster than from scratch, and that \ewu{SOME OTHER FINDING}
-  % \item Finally, we show that \sys can solve existing data cleaning benchmarks at competitive runtimes and accuracies as existing specialized data cleaning systems.  We believe this is not necessarily due to superiority of \sys, but may be a symptom of limitations of existing cleaning benchmarks, which have simple structure.
 \end{itemize}
 
 
