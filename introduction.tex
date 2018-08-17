@@ -12,6 +12,12 @@ In data cleaning, there is a chicken-and-egg problem, where accuracy is defined 
 In practice, we often use a proxy for accuracy such as the satisfaction of integrity constraints, how well it fits a statistical model, or accuracy on gold standard data.
 Given one of these proxy accuracy metrics, is black-box hyperparameter tuning sufficient for applications in data cleaning optimization?
 
+\begin{figure}[t]
+\centering
+ \includegraphics[width=\columnwidth]{figures/teaser-experiment.png}
+ \caption{\small 10\% of a dataset of dictionary words are duplicated with randomly generated spelling errors. The dataset is to be cleaned with a similarity matcher and a spell checker. Holistically, tuning the parameters of both with \textsf{python hyperopt} (BB-Full) is inefficient due to interactions between the two data cleaning options. Rather than treating the entire pipeline as a black box, \sys provides an API for a pipeline of data cleaning operations to suggest candidate edits and algorithm the algorith reasons about their accuracy in composition. \label{fig:teaser}}
+\end{figure}
+
 A subtle challenge is that existing black-box search algorithms treat the pipeline as a monolithic unit.
 They do not explcitly reason about interactions between pipeline components, and those effects are latently captured in the parameter space and accuracy metric.
 Consider a simple experiment: we have a dataset of 1000 dictionary words (10\% of which are duplicated with randomly generated spelling errors affecting 1-3 characters), and cleaned by an edit distance similarity matcher with a tunable threshold and a spell checker with a tunable recommendation parameter.
@@ -21,16 +27,9 @@ This experiment is designed such that there is redudancy in the pipeline, where 
 The joint optimization method wastes evaluation cycles exploring parameter settings where both techniques significantly overlap.
 
 
-\begin{figure}[t]
-\centering
- \includegraphics[width=\columnwidth]{figures/teaser-experiment.png}
- \caption{\small 10\% of a dataset of dictionary words are duplicated with randomly generated spelling errors. The dataset is to be cleaned with a similarity matcher and a spell checker. Holistically, tuning the parameters of both with \textsf{python hyperopt} (BB-Full) is inefficient due to interactions between the two data cleaning options. Rather than treating the entire pipeline as a black box, \sys provides an API for a pipeline of data cleaning operations to suggest candidate edits and algorithm the algorith reasons about their accuracy in composition. \label{fig:teaser}}
-\end{figure}
-
 In this case, we are lucky; the joint optimization converges to a reasonable solution given enough time.
 However, as we scale to more complex and larger scale problems, avoiding local optima becomes a daunting challenge.
 Interactions between methods may not simply be redundancies, and improperly tuned techniques might even reverse the changes made by previous steps.
-
 We arrived at a simple architecture to address this issue by rethinking the parameter search process.
 For a given parameter setting, every data cleaning method in the pipeline suggests \emph{candiate} repairs to a dataset.
 These repairs are aggregated into a large set of possible transformations to apply
