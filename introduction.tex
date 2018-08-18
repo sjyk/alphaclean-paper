@@ -1,6 +1,29 @@
 \section{Introduction}\label{intro}\sloppy
 
 
+Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}, and analysts may spend upwards of 80\% of the analysis effort to clean and prep the data.  A common form of data errors are those where attribute values are incorrect---these errors can vary from missing data, incorrect or biased values, misspellings, the concatenation of multiple attributes due to extraction errors, and more.  These errors must be fixed before being used by downstream applications such as SQL queries, visualizations, or machine learning models.    
+
+
+Data cleaning is challenging because there is rarely a well-defined ground-truth. Instead, developers must both 1) characterize the data quality issues that affect their application, and 2) compose data cleaning programs to fix those issues.  However, this is challenging for two reasons.  First, developers often do not know the exact description nor the extend of the quality issues of their data up-front.  Instead, they examine analysis output and iteratively refine their understanding throughou the cleaning process~\cite{krishnan2016hilda}.  Second, developers must then translate these quality issues into concrete data cleaning programs that successfully fix the issues.  This is challenging because 
+
+Second, developers must translate these quality characteristics into invocations of data cleaning operators to fix these errors.  However, even for a simple logical cleaning operator, such as outlier value imputation, there is a large space of physical cleaning options.  Which  outliers could utilize a fixed threshold, an unsupervised statistical model, a problem-specific model (e.g., of EEG signals~\cite{}), a based on constraints.  Each operation further burdens the developer with numerous choices to set its parameters---what threshold?  How many clusters? What model features?   Once the outliers have been detected, there is a similar buffet of options to actually replace the outlier value.     Unfortunately, data cleaning is challenging because even a single data set can have many different types of errors (e.g., outliers, constraint violations, duplicates, mis-spellings, incorrect orderings).
+
+It is a human in the loop problem.
+
+
+Specialized operators are tailored to specific error types and fix operators.
+
+Pipelines are flexible, but requrie the developer to reason about a large search space.
+
+Ideally, user primarily focuses on quantifying the error types, and the allows the system to generate cleaning programs, refining the search space as desired.
+
+One promising approach is hyperparameter search.
+
+It doesn't work.  Teaser example
+
+Our paper 1) encodes cleaning objectives as a quality function, and provides tools for users to compose quality functions easily, 2) models cleaning as a sequential learning problem, 3) uses machine learning to dynamically prune the search space during the search process.  
+
+
 
 
 Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}. 
@@ -11,33 +34,32 @@ Therefore, there is a need for systems that automatically tune and optimize para
 
 
 
-intro:
-pander to databases: 
-objective?  downstream quality function
-what types of pipelines? how to model?
-why not the closest hyperparameter search?
-
-naive 1: AutoML
-most param settings is bad.  want to prune those out.
-very delayed feedback because need to actually execute the pipeline before seeing results (and executing the pipeline can be very expensive)
-
-naive 2: program synthesis
-explotion in branching factor by allowing all possible transforms
-broader objective function class than foofah
-
-mixture of simple operators.  Not learning a language
-experiments are too simple.  
-
-* there is no transformation holoclean can do that we cannot do
-* strip things down to clearly focus on the search algorithm 
-* the transforms are actually simple in any system, it's how they are selected and parameterized that is challenging.  
-
-we help you compose the objectives using a simple API that simply prioritizes features correlated with the error
+% intro:
+% pander to databases: 
+% objective?  downstream quality function
+% what types of pipelines? how to model?
+% why not the closest hyperparameter search?
+% 
+% naive 1: AutoML
+% most param settings is bad.  want to prune those out.
+% very delayed feedback because need to actually execute the pipeline before seeing results (and executing the pipeline can be very expensive)
+% 
+% naive 2: program synthesis
+% explotion in branching factor by allowing all possible transforms
+% broader objective function class than foofah
+% 
+% mixture of simple operators.  Not learning a language
+% experiments are too simple.  
+% 
+% * there is no transformation holoclean can do that we cannot do
+% * strip things down to clearly focus on the search algorithm 
+% * the transforms are actually simple in any system, it's how they are selected and parameterized that is challenging.  
+% 
+% we help you compose the objectives using a simple API that simply prioritizes features correlated with the error
 
 
 It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, where an analyst may spend upwards of 80\% of the analysis effort on cleaning and prepper the data.  A core challenge in data cleaning is that the solutions are incredibly domain and application-specific, and the analyst must explore a massive space of possible errors {\it and} data cleaning operations in order to identify the appropriate sequence of data cleaning transformations that is appropriate for her problem.
 
-Consider a single logical cleaning operation such as addressing outlier values.  There is a large space of physical data cleaning operations: simply detecting the outliers could utilize a fixed threshold, an unsupervised statistical model, a problem-specific model (e.g., of EEG signals~\cite{}), a based on constraints.  Each operation further burdens the developer with numerous choices to set its parameters---what threshold?  How many clusters? What model features?   Once the outliers have been detected, there is a similar buffet of options to actually replace the outlier value.     Unfortunately, data cleaning is challenging because even a single data set can have many different types of errors (e.g., outliers, constraint violations, duplicates, mis-spellings, incorrect orderings).
 
 To address this problem in practice, organizations often curate a library of common implementations of data cleaning operations (e.g., a set of EEGspecific outlier detectors) and develop data cleaning pipelines to more easily combine them into data cleaning pipelines~\cite{krishnan2016hilda}.  Similarly, a number of declarative data cleaning frameworks~\cite{DBLP:journals/pvldb/HaasKWF015,gokhale2014corleone,stonebraker2013data,giannakopoulou2017cleanm} provide high-level APIs and languages to address broad classes of data cleaning problems.  Although these solutions help address the engineering and execution aspects to complex data cleaning problems, the developer is still faced, at each step, with numerous choices in terms of the operator to use, how to set its parameters, and the order to compose the operators.  There is a need to develop \textbf{automated approaches to identify, parameterize, and compose data cleaning operators to satisfy the user's cleaning goal}.  Unfortunately, this is challenging for a number of reasons.
 
