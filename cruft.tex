@@ -1,0 +1,50 @@
+
+Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}. 
+The research community is developing increasingly sophisticated learning-based methods for detecting and repairing errors in large datasets~\cite{dc, rekatsinas2017holoclean, DBLP:journals/pvldb/KrishnanWWFG16, DBLP:conf/sigmod/ChuIKW16, mudgal2018deep, doan2018toward}.
+As complexity grows, so does the number of user-facing parameters.
+The burden on the analyst is gradually shifting away from the design of hand-written data cleaning programs, to parameter tuning in a sequence of multiple such automated systems.
+Therefore, there is a need for systems that automatically tune and optimize parameters in data transformation and cleaning pipelines.
+
+
+
+% intro:
+% pander to databases: 
+% objective?  downstream quality function
+% what types of pipelines? how to model?
+% why not the closest hyperparameter search?
+% 
+% naive 1: AutoML
+% most param settings is bad.  want to prune those out.
+% very delayed feedback because need to actually execute the pipeline before seeing results (and executing the pipeline can be very expensive)
+% 
+% naive 2: program synthesis
+% explotion in branching factor by allowing all possible transforms
+% broader objective function class than foofah
+% 
+% mixture of simple operators.  Not learning a language
+% experiments are too simple.  
+% 
+% * there is no transformation holoclean can do that we cannot do
+% * strip things down to clearly focus on the search algorithm 
+% * the transforms are actually simple in any system, it's how they are selected and parameterized that is challenging.  
+% 
+% we help you compose the objectives using a simple API that simply prioritizes features correlated with the error
+
+
+It is widely known that data cleaning is one of the most time-consuming steps of the data analysis process~\cite{nytimes}, where an analyst may spend upwards of 80\% of the analysis effort on cleaning and prepper the data.  A core challenge in data cleaning is that the solutions are incredibly domain and application-specific, and the analyst must explore a massive space of possible errors {\it and} data cleaning operations in order to identify the appropriate sequence of data cleaning transformations that is appropriate for her problem.
+
+
+To address this problem in practice, organizations often curate a library of common implementations of data cleaning operations (e.g., a set of EEGspecific outlier detectors) and develop data cleaning pipelines to more easily combine them into data cleaning pipelines~\cite{krishnan2016hilda}.  Similarly, a number of declarative data cleaning frameworks~\cite{DBLP:journals/pvldb/HaasKWF015,gokhale2014corleone,stonebraker2013data,giannakopoulou2017cleanm} provide high-level APIs and languages to address broad classes of data cleaning problems.  Although these solutions help address the engineering and execution aspects to complex data cleaning problems, the developer is still faced, at each step, with numerous choices in terms of the operator to use, how to set its parameters, and the order to compose the operators.  There is a need to develop \textbf{automated approaches to identify, parameterize, and compose data cleaning operators to satisfy the user's cleaning goal}.  Unfortunately, this is challenging for a number of reasons.
+
+%There is a need to automate data cleaning~\cite{DBLP:conf/sigmod/ChuIKW16}
+
+
+% data is increasingly collected across many different data sources; each dataset can exhibit different types of errors that are domain specific.
+
+First, there can be a mixture of many error types.    These error types can be {\it syntactic}, due to e.g., data extraction bugs that cause multiple attributes to be concatenated into a single string, or schema detection errors that cause entire columns to be shifted.  They can also be {\it semantic}, such as incorrect attribute values, functional dependency violations, or sequential data that does not conform to an expected trend.   Each type of error, in each domain, often requires different methods to fix them.  These can range from complex imputation algorithms that use domain-specific error models (ref signal processing and holoclean), to simple rules that are easy to report and understand~\cite{}.  \ewu{For each, there are numerous specialized solutions}
+
+Second, datasets often contain mixtures of the above errors.  These errors may be introduced at any part of the data extraction, cleaning, and processing pipeline before the devolper analyzes it.  For instance, data entry errors or incorrect survey coding may introduce semantically incorrect values for some attribute values.  In addition, data extraction or schema alignment algorithms may introduce syntactic errors where attributes are shifted or their values are concatenated.  These errors are not independent. For instance, the above concatenation error affects the ability to interpret semantic values.  
+
+Most importantly, developers and users often do not know the quality characteristics and constraints of their data up-front.  Instead, they examine their analysis output to develop hypotheses about the presence and type of errors in their data; they then iteratively refine their understanding throughout the data cleaning process~\cite{krishnan2016hilda}.  The developer then needs to try different incantations of cleaning operators to test her hypothesis.   However, the need for the developer to reason about the application-level data error characteristics {\it and} manually explore the physical operator space impedes the end-to-end cleaning process.   
+
+
