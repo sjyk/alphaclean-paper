@@ -1,4 +1,7 @@
 
+% However, even for a simple logical cleaning operator, such as outlier value imputation, there is a large space of physical cleaning options.  Which  outliers could utilize a fixed threshold, an unsupervised statistical model, a problem-specific model (e.g., of EEG signals~\cite{}), a based on constraints.  Each operation further burdens the developer with numerous choices to set its parameters---what threshold?  How many clusters? What model features?   Once the outliers have been detected, there is a similar buffet of options to actually replace the outlier value.     Unfortunately, data cleaning is challenging because even a single data set can have many different types of errors (e.g., outliers, constraint violations, duplicates, mis-spellings, incorrect orderings).
+
+
 Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}. 
 The research community is developing increasingly sophisticated learning-based methods for detecting and repairing errors in large datasets~\cite{dc, rekatsinas2017holoclean, DBLP:journals/pvldb/KrishnanWWFG16, DBLP:conf/sigmod/ChuIKW16, mudgal2018deep, doan2018toward}.
 As complexity grows, so does the number of user-facing parameters.
