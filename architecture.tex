@@ -1,72 +1,69 @@
-\section{Architecture and API}
 \begin{figure}[t]
-% \vspace{-5pt}
 \centering
- \includegraphics[width=.8\columnwidth]{figures/alphacleanarch.pdf}
- \caption{\small \sys transforms high level cleaning goals (e.g., integrity constraints, statistical models, cleaning operations) into a quality measure and cleaning language, and uses an optimized tree search to find and optimize a sequence of transformations (cleaning program) to maximize the quality measure.   \label{fig:arch} }
+ \includegraphics[width=0.7\columnwidth]{figures/architecture.png}
+ \caption{\small \sys decouples sampling from the parameter space from search. This allows the user to iterate quickly by observing early best-effort results. \label{fig:arch}}
 \end{figure}
-This section describes the three major components of the \sys system architecture (\Cref{fig:arch}), split between the user interface to specify the cleaning problem, the core search algorithm, and optimization of the resulting cleaning program.  We detail the interface and program optimization in this section, and focus on the search algorithm and optimizations in the rest of the paper. Designing data cleaning interfaces~\cite{DBLP:conf/uist/GuoKHH11} and query optimization for data cleaning~\cite{DBLP:conf/vldb/GalhardasFSSS01, khayyat2015bigdansing} are interesting problems in their own right, and we believe \sys can enable simpler and more powerful approaches.  However, these were not a focus of the current study.
 
-The {\it Specification Interface} contains extensible libraries of domain-specific quality functions, cleaning data transformations, and pruning feature hints that the user can use to define a high level cleaning goal.  Our current implementation can translate a wide range of domain-specific goals---including type constraints, functional dependencies, denial constraints, lookup tables, parametric and non-parametric outlier models, and correlations between numeric attributes---into a single quality function.  Users can also constrain the cleaning language, and we currently support any type of conditional cell and record transformation that applies a black-box transformation to all cells or records satisfying a predicate; both the transformation parameters and the predicate are learned by \sys.  Finally, users can optionally provide features that \sys uses to dynamically learn pruning rules (Section~\ref{s:dynlearn}).
-
-The {\it Search} component takes as input the quality function $Q$ and language $L$, and performs a greedy search heuristic to find a program $p^* \in L$ that maximizes $Q$.  Users can supply hints that exploit the problem structure to reduce the runtime by pruning the search space and parallelizing the search.  To bound the search space, users specify a maximum program length $k$.    \sys also supports three classes optimizations. {\it Static pruning} invalidates candidate programs based on the program structure (sequence of actions).  For instance, composing the same idempotent transformation (e.g., \texttt{find\_replace(SFO, SF, city\_name)}) in succession is unnecessary.  {\it Dynamic pruning} can access the result of a candidate program (search state) when making pruning decisions, and we propose a novel approach to learn automatic dynamic pruning rules that can reduce end-to-end runtimes by up to 75\% at the expense of slightly lower recall. Finally, \sys ~ {\it parallelizes} ~ the search in both shared memory and distributed settings.  Section~\ref{s:opts} describes the pruning rules and parallelization optimization in detail.
+\section{Asynchronous Plan-Space Enumeration}
 
 
-Finally, once search component outputs the cleaning program $p^*$, the {\it Program Optimizer} performs query compilation optimizations and provides an API to add new optimizations.  \sys currently replaces variables with literal values whenever possible, inlines data transformations into loops that scan over the input relation, and uses loop fusion~\cite{palkar2017weld, crotty2014tupleware} to avoid unnecessary scans over the input and intermediate relations for each transformation in $p^*$.  Consider the program in~\Cref{ex3}.  Since the \texttt{find\_replace} operations do not conflict, it is inefficient to loop through over the relation instance three separate times.  Since they do not conflict, it would be inefficient to execute them sequentially and iterate over the data three separate times.  Instead, they can be fused:
-{\small
-\begin{lstlisting}
-    for r in rows:
-     if r[city_name] == `New York':
-       r[city_name] = `New York City'
-     elif r[city_name] == `San Francisc':
-       r[city_name] = `San Francisco'
-     if r[city_code] == `NYC'
-       r[city_code] = `NY'
-\end{lstlisting}
-}
-These simple optimizations improve the final program runtime by up-to 20x, and we leave further improvements to future work (e.g., could be optimized with a framework like Weld~\cite{palkar2017weld}).
+A naive approach, which we call {\it Synchronous Tuning}, towards plan enumeration is straightforward.  To generate the next candidate pipeline, select a candidate cleaning operator, select parameter values and execute the operator to generate a set of candidate assignments, select one candidate assignment and select a predicate for it, append it to the current candidate pipelines, and finally evaluate the quality function.  In fact, many existing data cleaning systems~\cite{} implicitly use this search procedure, but avoid the large branching factor through careful system design.    However, each step to generate a new candidate pipelines is blocking, and considerably slows the ability to quickly search through candidate pipelines.  
 
+To address this issue, we explicitly decouple the generation of candidate assignments from the search procedure.  \sys .  In a parallel procedure, 
 
-% The user can optionally provide custom quality functions and data transformations as simple Python class definitions.      takes as input user specifications of the quality function and data transformation language, alongside search configuration parameters.
+This paper proposes a framework, called \sys, that provides a simple unified abstraction of cleaning transformations and facilitates optimization over a plan space of cleaning transformation sequences.
+We now describe how \sys enumerates the plan space.
 
+\subsection{Candidate Conditional Assignment Set}
+Our main architectural insight is a generate-then-search framework.
+Possible parameter values are fed into a library of data cleaning methods, and these parameter assignments asynchronously generate candidate repairs to the dataset (called conditional assignments).
+In parallel, a search thread builds a data cleaning plan using compositions of those transformations in the set. 
+Existing search algorithms implicitly pipeline these two steps; whereas, we decouple these two steps where candidate repairs can be generated in a separate thread and the search algorithm can proceed independently.
+This contrasts from the baseline architecture, hereafter called \emph{synchronous tuning}, where a hyperparameter tuning algorithm will then select and assign parameter values to a sequence of operators and evaluate the quality at the end. 
+There are a few benefits for the asynchronous architecture of \sys.
 
-\if{0}
-Now, we will overview some of the preliminary concepts and describe how this formalism inspires a modular system API.
-\sys is designed as a software stack with three layers: a specification layer, a search layer, and an execution layer.
-To understand how these layers interact, we will use the example in Section 2 throughout this section.
+\vspace{0.5em} \noindent \textbf{Benefit 1. Robustness To Straggler Data Cleaning Methods: } Decoupling candidate generation and search allows \sys to be robust to particular data cleaning methods that are slow. Many data cleaning methods have parameters that affect their runtime. For example, inference thresholds and partitioning parameters can have ``cliffs'', where a small change in parameters can drastically slow down the performance of the method. Including such parameter settings in the search process naively would block the entire system.
 
+\vspace{0.5em} \noindent \textbf{Benefit 2. Progressive Results: } Next, the decoupling also allows for improved progressive behavior with early results. The search thread continuously polls the candidate conditional assignment set for new expansions. The naturally faster  data cleaning methods (e.g., approximate) will generate candidate repairs faster. Slower methods will eventually add these candidate repairs. This allows users to identify faults or glitches in their quality specifications or parameter spaces more quickly than if all methods were synchronously tuned in a pipeline.
 
-\subsection{Specification Layer} The provides an API for specifying a quality function and a language of transformations. This allows one to specify a data cleaning problem for a particular dirty instance. As described in the previous section, we provide an API for translating common data cleaning specifications, constraints, statistical models, and gold standard examples, into quality functions. 
+\subsection{Parameter Space}
+The input parameters to each of the data cleaning methods follow a type system that allows us to apply some optimizations based on the quality function.
 
-The harder problem is specifying the language. 
-The challenge is that most data transformations are parametrized by literal values from the database.
-We need efficient techniques to automatically enumerate this transformation set before we apply the search.
-The language is generated through a transformation templates which are dynamically populated by literals in the database.
-A template is a parametrized transformation:
-\[T(R, [\theta_1, \theta_2,...,\theta_k] ): \mathcal{R} \mapsto  \mathcal{R},\] where the parameters $[\theta_i]$ are populated by literal values.
-Each $\theta_i$ represents an SQL query except for special parameters such as attribute names and data-independent hyperparameters.
-The system dynamically generates all possible literal instances of this transformation by taking the cartesian product of the query results.
+\noindent \textbf{Attribute Name Parameters: } These are parameter with an attribute name (or multiple attributes) as a property. For example, a numerical outlier detection algorithm might apply to a single attribute or a subset of attributes. The search space over possible attribute names is automatically generated from the schema. \sys ``pushes up'' the attributes relevant to the quality function to eliminate generating candidates for irrelevant attributes. 
 
-In the running example, consider the following function:
+\noindent \textbf{Numerical Parameters: } Another broad class of parameters in data cleaning methods are numerical parameters like thresholds and inference parameters. For these parameters, the user specifies a range (or a multi-dimensional grid). Often times, these parameters correspond to confidence metrics. In the example with the \texttt{City} table, the \texttt{ispell} method has a acceptance threshold for spell-checking. In these cases, we recommend that this search space is ordered fine-to-coarse. Where the most restrictive threshold is evaluated first towards increasingly less restrictive thresholds. 
+
+\noindent \textbf{General Parameters: } \sys also accepts lists of general parameters, which can any python object. The user must specify the list of possible values and no optimizations can be applied to prune this space.
+
+\subsection{Incremental Evaluation}
+The main drawback of the asychronous approach is that the number of quality function evaluations is much higher. We argue that this is acceptable in many data cleaning settings, since quality function evaluation is often far cheaper than candidate repair generation (e.g., checking integrity constraints is cheaper than enforcing them). Furthermore, \sys can ``incrementally'' evaluate a quality function. 
+Suppose we have a relation $R$, the quality function $q$, and a set of conditional assignment expressions $C$.
+When possible, \sys computes $q(R)$ once and then for each of the expressions $c \in C$ compute a delta $q(c(R)) = q(R) + \delta_c(q(R))$.
+For many types of quality functions such incremental computation can be automatically synthesized and can greatly save on computation time.
+This is exactly a process of incremental view maintenance.
+
+Let us consider a concrete example with the quality function q1, a functional dependency checker, from the previous section.
+$R'$ is the resulting relation after applying \texttt{c} to all of the records.
+Let $r_{pred}$ be the set of records that satisfy the predicate of the conditional assignment expression and $r_{pred}'$ be the resulting transformed records.
+q1 can be expressed in relational algebra in the following way:
 \[
-\textsf{find\_replace}(\text{source}, \text{target}, \text{attribute})
+q_1(R') = \textsf{count}( R' \bowtie R' )
 \]
-\begin{lstlisting}
-source := SELECT attribute from R;
-target := SELECT attribute from R;
-\end{lstlisting}
-Likewise for numerical transformations, consider the function that clips outlier values outside 6 standard deviations of the mean:
+$R'$ can be described in terms of $R$:
 \[
-\textsf{clip}(\text{mean}, \text{threshold})
+R' = R - r_{pred} + r_{pred}' 
 \]
-\begin{lstlisting}
-mean := SELECT mean(attribute) from R;
-threshold := SELECT 6*std(attribute) from R;
-\end{lstlisting}
-\sys provides queries and filters for a number of common parametrizations or they can be specified manually.
+leading to the following expression:
+\[
+q_1(R') = \red{q_1(R)} - \textsf{count}( r_{pred} \bowtie R )  + \textsf{count}( r'_{pred} \bowtie R )
+\]
+If we used a hash join to evaluate this quality function, the cost of incrementally maintaining is roughly linear in the size of the number records changed rather than the size of the relation.
 
-\subsection{Search Layer (Section 5)} The next layer is the search layer, which implements the basic search algorithm of \sys. This algorithm is a distributed best-first greedy search.  
-With no additional information, the search approach described would have to evaluate $61^3 = 226981$ transformations, which is clearly impractical even for this small example.
-This layer also provides an interface for custom search optimizations:
+The consequence is that evaluating changes in quality can be very efficient for a large class of data cleaning problems.
+The architecture of \sys is designed to exploit this property.
+We assume conditional assignment generation to be expensive but quality evaluation to be fast.
+An architecture that runs the entire pipeline before seeing the resultant quality is wasteful.
 
-\fi
+
+
+

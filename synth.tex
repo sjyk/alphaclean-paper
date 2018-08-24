@@ -1,42 +1,13 @@
 \section{Search Overview}
-We now provide an overview of \sys's search algorithm and optimizations.
+\sys applies a tree search to search through compositions of conditional assignments in the enumerated plan-space.
+We now provide an overview of this search algorithm and optimizations.
 
 % The optimization algorithm takes a quality function, a language, and a dirty relation, and outputs a sequence of transformations (of max depth $k$) that maximizes the quality function.
 
-{
-\begin{algorithm}[t]
-\KwData{Q, R, $\Sigma$, $L$, (k, $\gamma$)}
 
-// Initialize priority queue of candidate programs\\
-$P = \{NOOP\}$
-
-\While{ $|\{p \in P\ |\ p.len < k\}| > 0$ }
-{
-    \For{$p \in P: \|p\| < k$ }{
-        
-        Pop $p$ from the queue.
-        
-        \For{$T \in \Sigma$}{
-             $p' = p \circ T$ 
-             
-             \If{$p' \in L$}{
-               $P.push(p', Q(p'(R)))$
-             }
-        }
-    }
-    
-    $\bar{p} = \argmax_{p\in P} Q(p(R))$\\
-    $P = \{p \in P\ |\ p < \gamma\times Q(\bar{p}(R)) \}$
-}
-
-\Return Highest priority item on the queue
-\caption{Greedy Best-First Tree Search}
-\label{alg:main}
-\end{algorithm}
-}
 
 \subsection{Naive Search Procedures}
-In principle, any tree search algorithm over $L$ would be correct.
+In principle, any tree search algorithm over $P$ would be correct.
 However, the traversal order and expansion policy is important in this search problem.  We describe the algorithmic and practical reasons why two naive procedures---breadth-first search (BFS) and depth-first search (DFS)---exhibit poor search runtimes.
 
 \stitle{BFS} This approach extends each program in the search frontier with every possible data transformation in $\Sigma$.  To extend a candidate program $l_c$ with $T \in \Sigma$, it evaluates $Q((T\circ l_c)(R))$.  Unfortunately, the frontier grows exponentially with each iteration.  Additionally, evaluating every new candidate program $T\circ l_c$ can be expensive if the input relation is large.   Although the cost can be reduced by materializing $l_c(R)$, it is not possible to materialize all candidate programs in the frontier for all but the most trivial cleaning problems.    It is desirable to use asearch procedure that bounds the size of the frontier and the materialization costs.
@@ -87,7 +58,7 @@ Since it can be challenging to hand-write pruning rules, \Cref{s:dynlearn} descr
 
 % For example, we may want to ensure that all the evaluations are ``correlated'' with the cost function--that is it makes modifications that are likely to affect the costs.  This is possible if the cost separable where we have a score for each cell. In this case, we can find all the cells in violation of the functional dependencies and make sure that the ``source'' field of the find-and-replace operations only match values that are in violation.  These optimizations are called ``dynamic' because they can be determined from the active domain (i.e., after applying a transformation, recalculate new optimization rules).  Applying this optimization (in addition to the others) to the example reduces the search space to 1582 evaluations v.s. 226981 unoptimized (143x reduction).
 
-\stitle{Block-wise Cleaning} 
+\subsection{Block-wise Tuning}
 A major cost is that independent errors in the relation must be cleaned sequentially in the search algorithm.  For instance, records 2, 3, and 4 in~\Cref{ex1} exhibit independent errors and a fix for a given record does not affect the other records.  Thus, if each record were cleaned in isolation, the search space would be $O(|\Sigma|)$.  Unfortunately, the entire relation requires a program of three transformation to fix the records, which increases the search space to $O(|\Sigma|^3)$.
 
 The main insight in block-wise cleaning is that many errors are local to a small number of records.  In these cases, it is possible to partition $R$ into a set of blocks $B_1,\cdots,B_m$, execute the search algorithm over each block independently, and concatenate their programs to generate the final cleaning program.  This gather-scatter approach can exponentially reduce the search space for each block, and reduces the cost of evaluating super-linear quality functions that require e.g., computing a pair-wise similarity scores for the input relation.    For example, quality functions derived from functional dependencies can define blocks by examining the violating tuples linked through the dependency.  Similarly, users can define custom partitioning functions or learn them via e.g., clustering algorithms.  In our current implementation, we partition the input relation by cell or row if the quality function is cell or row separable.

@@ -40,7 +40,7 @@
 \usepackage[nospace]{cite}
 \usepackage{csquotes}
 \usepackage{enumitem}
-\usepackage{times}
+\usepackage{charter}
 
 \usepackage{courier}
 
@@ -66,10 +66,7 @@
 
 \begin{document}
 
-\setlength{\belowdisplayskip}{3pt} \setlength{\belowdisplayshortskip}{3pt}
-\setlength{\abovedisplayskip}{3pt} \setlength{\abovedisplayshortskip}{3pt}
-\setlength{\belowcaptionskip}{-10pt}
-\selectfont
+
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{example}{Example}
@@ -177,7 +174,7 @@
 % \title{\sys: Automatic Data Cleaning as Planning}
 % \title{\sys: Automatic Data Cleaning as Optimization}
 %\title{\sys: A Declarative Data Cleaning System Inspired By AlphaGo}
-\title{AlphaClean: Data Cleaning With Distributed Search and Machine Learning}
+\title{AlphaClean: Holistic Optimization of Data Cleaning Pipelines}
 
 \numberofauthors{1}
 \author{ Sanjay Krishnan$\,^{*}$, Michael J. Franklin$\,^{*\dag}$, Ken Goldberg$\,^{*}$, Eugene Wu{$\,^{\dag\dag}$}  \\
@@ -203,13 +200,11 @@
 \input{introduction.tex}
 \input{background.tex}
  \input{problem_statement.tex}
+\input{architecture.tex} 
+ \input{search.tex}
+\input{learning.tex}
+%\input{experiments.tex}
 \input{relatedwork.tex}
-
-\input{architecture.tex}
-\input{synth.tex}
-\input{opts.tex}
-\input{experiments.tex}
-
 \input{conclusion.tex}
 %\input{acks.tex}
 

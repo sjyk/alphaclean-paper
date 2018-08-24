@@ -3,13 +3,13 @@ This paper studies the \emph{data cleaning optimization} problem.
 Given a parametrized library of data cleaning components, all of whom preserve the schema and number of records, we would like to generate a data cleaning plan to optimize a user-specified data quality metric.
 
 \subsection{Motivation}
-The idea is develop techniques to automatically generate and tune data cleaning pipelines based on user-specified quality characteristics.  Thus, the user can primarily focus on composing and expressing data quality issues, and allow the system to explore the space of physical cleaning plans.  The search procedure is progressive, in the sense that it quickly generates acceptable cleaning plans, and refines those plans over time.  Thus, the user can immediately assess her hypothesis, or test multiple hypotheses in parallel.
+The idea is develop techniques to automatically generate and tune data cleaning pipelines based on user-specified quality characteristics (which we called cost models above).  Thus, the user can primarily focus on composing and expressing data quality issues, and allow the system to explore the space of physical cleaning plans.  The search procedure is progressive, in the sense that it quickly generates acceptable cleaning plans, and refines those plans over time.  Thus, the user can immediately assess her hypothesis, or test multiple hypotheses in parallel.
 
 
 \begin{figure}[t]
   \centering
  \includegraphics[width=\columnwidth]{figures/user-pipeline}
- \caption{\small Typical data cleaning pipeline.  The user finds that analysis results (of SQL query, ML model, web application, etc) are suspicious and iteratively (1) composes a quality function to characterize the suspicious quality issues, and (2) modifies the data cleaning pipeline to address the errors.  The bottleneck is the human-in-the-loop.  \label{fig:user-pipeline}}
+ \caption{\small Typical data cleaning pipeline.  The user finds that analysis results (of SQL query, ML model, web application, etc) are suspicious and iteratively (1) composes a quality function to characterize the suspicious quality issues, and (2) modifies the data cleaning pipeline to address the errors.  \sys improves this human-in-the-loop process by providing an expressive, composable quality function, and automatically searching for cleaning pipelines.  \label{fig:user-pipeline}}
 \end{figure}
 
 
@@ -22,10 +22,10 @@ Although these systems make it easier to construct and execute a pipeline, the s
 \subsection{Challenges}
 A natural connection to this problem is \emph{hyperparameter tuning} in machine learning, which identifies the optimal assignment of hyperparameters to maximize an objective function (e.g., training accuracy for ML models).
 Several systems have been built to optimize hyperpameter and neural network model search at scale~\cite{li2017hyperband, sparks2017keystoneml, baylor2017tfx, golovin2017google, liaw2018tune}.
-For a pipeline of up to $k$ cleaning components, we can create a parameter that represents the operator type in each of the pipeline slots, along with additional operators to tune each operator in each pipeline slot.  A hyperparameter tuning algorithm will then select and parameter a sequence of operators. Although this approach is possible, it ignores important aspects of data cleaning problems that can enable more efficient and flexible approaches.  
+For a pipeline of up to $k$ cleaning components, we can create a parameter that represents the operator type in each of the pipeline slots, along with additional operators to tune each operator in each pipeline slot.  A hyperparameter tuning algorithm will then select and assign parameter values to a sequence of operators. Although this approach is possible, it ignores important aspects of data cleaning problems that can enable more efficient and flexible approaches.  
 
 \vspace{0.5em}
-\noindent \textbf{Quality Function Structure. } Hyperparameter tuning algorithms are often terms ``black-box'' optimization algorithms because they only assume oracular access to the optimization objective (i.e., evaluate the quality of a given plan). In data cleaning, for many classes of quality metrics, incremental evaluation is possible, where the change in quality can be efficiently computed from a proposed transformation.  
+\noindent \textbf{Quality Function Structure. } Hyperparameter tuning algorithms are often terms ``black-box'' optimization algorithms because they only assume oracular access to the optimization objective (i.e., evaluate the quality of a given plan). In contrast, data cleaning cost models commonly support efficient incremental evaluation, and satisfy properties that enable data partitioning and efficient pruning techniques.  
 
 \begin{figure}[t]
 \centering
@@ -43,9 +43,8 @@ We compare hyperparameter search for three fixed pipelines:  single-operator pip
 
 
 \vspace{0.5em}
-\noindent \textbf{Runtime Bottlenecks. } Finally, hyperparameter tuning algorithms are designed for a paradigm where the objective function is very expensive to evaluate, e.g., training a neural network and observing the test accuracy. This delays any feedback until the entire pipeline is evaluated. Data cleaning is fundamentally a form of constraint satisfaction---easy to verify but hard to satisfy.
-The constituent pipeline stages can be much more expensive than accuracy evaluation (e.g., for Denial Constraints).
-This bottlencks any end-to-end tuning on the most expensive step in the pipeline.
+\noindent \textbf{Runtime Bottlenecks. } Finally, hyperparameter tuning algorithms are designed for a paradigm where the objective function is very expensive to evaluate, e.g., training and evaluating a neural network, or running a simulation. This delays any feedback until the entire pipeline is evaluated, which can be very expensive for large datasets. Data cleaning is fundamentally a form of constraint satisfaction---easy to verify but hard to satisfy.
+Each candidate pipeline can be much more expensive to compute than evaluating the cost model (e.g., for Denial Constraints).  This bottlenecks any end-to-end tuning on the most expensive step in the pipeline.
 
 
 
