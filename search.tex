@@ -21,10 +21,18 @@ $S = \{NOOP\}$
     
     
       $\bar{s} = \argmax_{s\in S} Q(s(R))$\\
+      
+      
+      
+      Apply Algorithm \ref{alg:pruning} to merge disjoint search paths.
+      
+      
+      
       $S= \{s \in S\ |\ s < \gamma\times Q(\bar{s}(R)) \}$
+      
     }
     
-    limit -- //decrement limit
+    limit -= 1 //decrement limit
   }
 
 
@@ -55,6 +63,56 @@ This means that we \emph{only have to materialize the delta}, which is the set o
     \caption{In each iteration, each worker starts with a subset of the priority queue (boxes).  The driver sends a subset of data transformations from $\Sigma$ (circles) to generate candidate programs (box-circles).  A series of synchronization points identify the globally top $\gamma$ candidates and redistributes them across the workers.   \label{fig:algo}}
 \end{figure}
 
+
+{
+\begin{algorithm}[t]
+\KwData{Q, S}
+
+ Pruned = $\{\}$  //empty priority queue
+
+ \For{$s \in S$ }{
+ 
+    $\bar{s}$ = $s$
+    
+    \For{$s' \in S$ }{
+        
+        $Q_{b}$ :=  quality of $\bar{s}$
+        
+        $Q_{s'}$ :=  quality of $s' \circ \bar{s}$
+        
+        $b_{pred}$ := union of predicates in $\bar{s}$
+        
+        $s_{pred}'$ := union of predicates in s'
+        
+        
+        \If{$b_{pred} \cap s_{pred}' = \emptyset$ and $Q_{s'} < Q_{b}$}{
+        
+           $\bar{s} = s' \circ \bar{s}$
+        }
+        
+    }
+    
+    Pruned.push($\bar{s}$)
+        
+}
+
+
+\Return Pruned
+\caption{Pruning Disjoint Paths}
+\label{alg:pruning}
+\end{algorithm}
+}
+
+\subsubsection{Collapsing Non-Interfering Paths}
+One inefficiency in the core search algorithm is that even when conditional assignments affect disjoint data, they will be sequentially composed.
+This leads to an exponential search-space growth even if data repairs are mostly independent.
+As a heuristic, we prune the search frontier by automatically combining plans that have disjoint predicates.
+Every plan $s$ in the priority queue $S$ is a composition of conditional assignment statements.
+Therefore, we can define a predicate $s_{pred}$, which is the union of all of the predicates of each of the composed conditional assignment statements.
+For $s$ and $s'$ in the priority queue, we can merge their results if $s_{pred}$ and $s_{pred}'$ are disjoint and improve on the overall plan quality.
+\Cref{alg:main} describes the algorithm used.
+
+
 \subsection{Parallelization} 
 Even with incremental evaluation, composing and evaluating $Q(s'(R))$ is the single most expensive operation in the search procedure.   
 Plans can also be evaluated in a parallel fashion across multiple cores and multiple machines. 
@@ -70,6 +128,3 @@ Note that the worker-local top-$\gamma$ candidates are a superset of the top-$\g
 Our implementation uses Ray~\cite{ray} to schedule and parallelize the tasks.
 
 
-\subsection{Collapsing Non-Interfering Paths}
-As a heuristic, we also prune the search frontier by automatically combining plans that have disjoint predicates.
-Every plan
