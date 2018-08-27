@@ -86,6 +86,12 @@ However, this example highlights that \emph{even seemingly simple data cleaning 
                 HAVING cnt = 1
                ) as tmp
 \end{lstlisting}
+Finally, the user can embed the downstream application as a user defined function (UDF).  For instance, the machine learning model accuracy can be added as a quality function:
+\begin{lstlisting}
+  q3(T): SELECT avg(err) AS acc
+         FROM ( SELECT model.eval(X) = Y
+                FROM T )
+\end{lstlisting}
 
 \noindent \sys lets the user compose linear combinations of quality functions together. We model the composition over $n$ individual quality functions as $Q(T) = \sum_{i=1}^n w_iq_i(T)$.  For example, $n=2$ in the example, and captures the semantic functional dependency issues as well as the syntactic string splitting errors in a single cost model.
 
