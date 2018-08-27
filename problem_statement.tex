@@ -78,6 +78,7 @@ A quality function measures a specific notion of cleanliness for a relation, and
 Conditional functional dependency violations is a well-studied quality function, and many systems optimize for this class of objectives~\cite{rekatsinas2017holoclean,DBLP:conf/sigmod/ChuIKW16}.   
 
 However, this example highlights that \emph{even seemingly simple data cleaning problems can require the flexibility to express multiple quality functions.}   For example, record 1 does not violate the above functional dependency, and will be missed by most functional dependency solvers.  Suppose the analyst observed a histogram of city names and noted that there were a large number of singleton entries. Thus, she could write a second quality function that counts the number of singleton entries.  This is an example of a quality function that other systems such as HoloClean and \ewu{XXX} do not support as input:
+
 \begin{lstlisting}
   q2(T): SELECT count(1)
          FROM ( SELECT count(1) as cnt
@@ -108,7 +109,7 @@ We are now ready to present cell-level data cleaning as the following search pro
 \begin{problem}[Search Problem]%[$\textsf{clean}(Q,R_{dirty},L)$]
 Given quality function $Q$, relation $R_{dirty}$, find valid plan $p^* \in \mathcal{P}$ that optimizes $Q$:
 \[
-p^* = ~ \max_{p \in P} Q( p(R_{dirty}) ).  
+p^* = ~ \min_{p \in P} Q( p(R_{dirty}) ).  
 \]
 \end{problem}
 $p^*(R_{dirty})$ returns the cleaned table, and $p^*$ can be applied to any table that is union compatible with $R_{dirty}$.  A desirable property of this problem formulation is that it directly trades off runtime with cleaning accuracy and can be stopped at any time (though the cleaning program may be suboptimal).
