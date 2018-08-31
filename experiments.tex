@@ -15,7 +15,7 @@
 \end{figure*}
 
 \section{Experiments}\label{s:exp}
-The goal of our experiments is to 1) compare \sys with modern blackbox hyper-parameter tuning algorithms to understand its strengths and failure cases, 2) to highlight the promise of a general search-based method through comparisons with data cleaning systems such as HoloClean~\cite{rekatsinas2017holoclean} that are specialized to specific classes of data errors, and 3) to show its ability to quickly respond to incremental changes to the quality function as e.g., the user learns more about her dataset.   
+The goal of our experiments is to 1) compare \sys with modern blackbox hyper-parameter tuning algorithms, 2) to understand its strengths and weaknesses, and 3) to highlight the promise of a general search-based method through comparisons with data cleaning systems such as HoloClean~\cite{rekatsinas2017holoclean} that are specialized to specific classes of data errors. 
 
 % We compare \sys to both other hyper-parameter tuning frameworks as well as end-to-end data cleaning systems when applicable. Our results show that: (1) \sys can tune data cleaning pipelines for a large variety of quality functions, (2) the asynchronous architecture in \sys is robust to redundant/slow/incorrect pipeline components, and (3) the optimizations in \sys can improve optimization performance by more than 20x.
 
@@ -29,14 +29,14 @@ We focus on three datasets used in prior data cleaning benchmarks.  Each dataset
 
 \stitle{Hospital} This dataset contains UK Hospital information, and used in~\cite{he2016interactive, rekatsinas2017holoclean}.  Roughly 5\% of the cells are corrupted with mispellings, missing values, or other inconsistencies.  The default quality function tries to minimize the number of singleton cities with only one hospital, because it may be due to data errors (example in Section~\ref{s:problem}).  The default library contains: \texttt{ispell.replace(thresh, attr)} as described in Section~\ref{s:problem} replaces the attribute value if it is within a threshold of a dictionary value, \texttt{minhash.replace(thresh, attr)} runs the minhash de-duplication algorithm~\cite{broder2000min} to find similar values and sets them to be equal, and \texttt{fd.replace(fd)} enforces a functional dependency with the chase algorithm~\cite{aho1979theory}.
 
-\stitle{London Air Quality} The dataset contains measurements of air pollution particulate matter from London boroughs~\footnote{\url{https://www.londonair.org.uk/london/asp/datadownload.asp}}. Around 2\% of the measurements (cells) are corrupted by a variety of different outliers including very large values as well as clipped very small values.  As the errors are mostly numerical in this dataset, the default quality function characterizes the smoothness of the measurements based on an autoregressive model.  Thus the function is defined with the running error of the smoothness model:
+\stitle{London Air Quality (LAQ)} The dataset contains measurements of air pollution particulate matter from London boroughs~\footnote{\url{https://www.londonair.org.uk/london/asp/datadownload.asp}}. Around 2\% of the measurements (cells) are corrupted by a variety of different outliers including very large values as well as clipped very small values.  As the errors are mostly numerical in this dataset, the default quality function fits an autoregressive model to the windows and computes the average error to the fit model:
 \begin{verbatim}
     SELECT AVG(autoregression.error(window))
     FROM data [Range 5 hours];
 \end{verbatim}
-\noindent The default library consists of parametrized outlier detector methods from dBoost~\cite{mariet2016outlier} and pyod~\footnote{\url{https://pyod.readthedocs.io/en/latest/}}.  Both detect outliers and set them to the last known non-outlier value. \texttt{dBoost.histogram(peak\_theshold, outlier\_threshold, window\_size)} detects peaks in histograms of sliding windows of the data, \texttt{dBoost.gaussian(K, window\_size)} thresholds values outside $K$ standard deviations  from the mean of a sliding window, and \texttt{pyod.pca(outlier\_threshold, window\_size)}  applies PCA to sliding windows and thresholds them by the sum of weighted projected distances to the eigenvector hyperplane.
+\noindent The default library consists of parametrized outlier detector methods from dBoost~\cite{mariet2016outlier} and pyod\footnote{\url{https://pyod.readthedocs.io/en/latest/}}.  Both detect outliers and set them to the last known non-outlier value. \texttt{dBoost.histogram(peak\_theshold, outlier\_threshold, window\_size)} detects peaks in histograms of sliding windows of the data, \texttt{dBoost.gaussian(K, window\_size)} thresholds values outside $K$ standard deviations  from the mean of a sliding window, and \texttt{pyod.pca(outlier\_threshold, window\_size)}  applies PCA to sliding windows and thresholds them by the sum of weighted projected distances to the eigenvector hyperplane.
 
-\stitle{Physician} The Physician Compare dataset was used in HoloClean~\cite{rekatsinas2017holoclean}, and contains information on medical professionals and the primary care practice they are associated with.  It contains misspellings, inconsistencies, and missing data. The default quality function is the set of 8 functional dependencies defined in~\cite{rekatsinas2017holoclean}.  The default library contains the operators for the Hospital dataset, but we also wrap HoloClean as an operator (\texttt{holoclean.replace(fd, threshold)}) to enforce a functional dependency using HoloClean's suggested cell value fix if its confidence exceeds a threshold.
+\stitle{Physician} The Physician Compare dataset was used in HoloClean~\cite{rekatsinas2017holoclean}, and contains information on medical professionals and the primary care practice they are associated with.  It contains misspellings, inconsistencies, and missing data. The default quality function is the set of 8 functional dependencies defined in~\cite{rekatsinas2017holoclean}.  The default library contains the operators for the Hospital dataset as well as HoloClean, which is wrapped as the operator (\texttt{holoclean.replace(fd, threshold)}) that enforces a functional dependency using HoloClean's suggested cell value fix if its confidence exceeds a threshold.
 
 \subsubsection{Baselines}
 We consider the following baseline techniques by encoding the data cleaning problem into a large set of parameters as described in Section~\ref{s:background}. To speed up the methods, we use the incremental computation optimization for quality function evaluation. Every component is given the same time limit and has to return its best cleaning strategy by that time. 
@@ -73,8 +73,9 @@ We see that in this case, \sys converges to the ground truth more quickly than t
 
 
 Figure~\ref{exp7} incrementally removes components of \sys to understand where the benefits come from:  incremental quality evaluation (Inc), asynchronous conditional assignment generation (Async), learning a pruning model (Learn).  We find that \sys without any optimizations (Naive) does not finish on the Physician within an hour due to the large size of the dataset, and that pruning is ineffective for Hospital due to its small size, so do not include them in the plots.
+
 We find that all techniques are crucial.  \sys is designed to quickly evaluate a large number of quality functions, thus Inc is a primary performance optimization. 
-Async allows search to quickly explore more pipelines without being blocked by conditional assignment generation, while Learn is able to effectively prune large subsets of the search space when the dataset is large.
+Async allows search to quickly explore more pipelines without being blocked by conditional assignment generation, while Learn is able to effectively prune large subsets of the search space when the dataset is large; if the dataset is small there can be too few partitions from which to collect training samples.
 These optimizations can improve convergence by more than 20x.
 
 
@@ -146,7 +147,7 @@ Cleaning operators set the predicate granularity of the conditional assignments 
 \stitle{Sequential Data Cleaning}
 It is possible that a best-first search through an asynchronously generated candidate pool may affect problems where the precise sequence of data cleaning operations matters.
 In the last experiment, we consider a synthetic dataset similar to the \texttt{City} table in Section~\ref{s:problem}.  
-We construct a dataset of 10000 tuples with string attributes \texttt{str1, str2}, and functional dependency \texttt{str1$\rightarrow$str2}.  We pick 5\% of the tuples and add random spelling errors or randomly swapped values. For 50\% of that subset of tuples, we concatenate \texttt{str1:str2} together with a separator drawn from \texttt{:,-}, set \texttt{str1} to the resulting string, and set \texttt{str2} to `'.  Thus, some tuples need to be accurately split before they can be cleaned to resolve functional dependency violations.
+We construct a dataset of 10000 tuples with string attributes \texttt{str1, str2}, and functional dependency \texttt{str1$\rightarrow$str2}.  We pick 5\% of the tuples and add random spelling errors or randomly swapped values. For 50\% of that subset of tuples, we concatenate \texttt{str1:str2} together with a separator drawn from the three characters (\texttt{:,-}).  We then set \texttt{str1} to the resulting string, and \texttt{str2} to `'.  Thus, some tuples need to be correctly split before they can be cleaned to resolve functional dependency violations.
 
 We consider two baseline libraries that each solve one type of error: \texttt{Split} only contains the string split operator, \texttt{String} only contains the string edit operators \texttt{ispell} and \texttt{edit\_dist\_match}.  \texttt{Comb} combines both libraries.  The quality function is the sum of the number of functional dependency violations, spelling errors, and empty strings.  We run \sys with 16 threads.
 
@@ -159,13 +160,13 @@ These ignored operations may later become relevant in later rounds of the algori
 
 \begin{figure}[h]
 \centering
- \includegraphics[width=0.8\columnwidth]{exp/exp9a.png}
- \includegraphics[width=0.8\columnwidth]{exp/exp9b.png}
+ \includegraphics[width=0.7\columnwidth]{exp/exp9a.png}
+ \includegraphics[width=0.7\columnwidth]{exp/exp9b.png}
  \caption{We compare \sys on the physician dataset and the air quality dataset against single standalone systems that address functional dependencies (Holoclean HC) and numerical errors (DBoost) respectively. \sys can support both types of errors and wrap around a variety of frameworks, and tune these frameworks.  Standalone system performance on 5 random parameters is shown as dashed lines.   \label{exp9}}
 \end{figure}
 
 \subsection{Comparison w/ Standalone Systems}
-We now compare \sys with 2 standalone cleaning systems optimized for specific classes of data errors: HoloClean~\cite{rekatsinas2017holoclean} cleans functional dependency violations and dBoost~\cite{mariet2016outlier} detects numerical errors (we use last known good value as the replacement).  For each, we compare \sys with the default library, the standalone system, and \sys with the standalone system wrapped as a cleaning operator. We note \sys's quality function is capable of expressing both benchmarks.  In contrast, each standalone system is better optimized for their class of data errors, but cannot express both benchmarks in this experiment.
+We now compare \sys with 2 standalone cleaning systems optimized for specific classes of  errors: HoloClean~\cite{rekatsinas2017holoclean} cleans functional dependency violations in the Physician data and dBoost~\cite{mariet2016outlier} detects numerical errors (we use last known good value as the replacement) in the LAQ data.  We compare \sys with the default library, the standalone system, and \sys with the standalone system wrapped as a cleaning operator. Note that \sys's quality function expresses both benchmarks, whereas each standalone system only expresses one of the two.
 
 Figure \ref{exp9}a-b illustrates the results.
 Even when a single data cleaning method can directly optimize the quality specification (i.e., integrity constraints), it might be beneficial to apply \sys to address the weak spots of the method. On the physician dataset, Holoclean (HC) achieves an accuracy of 86\% on its own, \sys without using Holoclean (AC-HC) achieves 73\%, and with using Holoclean (AC+HC) achieves 91\%. Similarly, on the air quality dataset, AC+DBoost achieves the best results and an even higher accuracy that DBoost on its own.

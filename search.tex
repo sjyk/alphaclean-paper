@@ -93,7 +93,7 @@ In general, conditional assignments are not commutative, meaning that $c_i\circ 
 
 
 \subsection{Parallelization} 
-Even with incremental evaluation, composing and evaluating $Q(s'(R))$ is the single most expensive search operation.  Thus, we parallelize across candidate pipelines and across data partitions.  Our implementation uses Ray~\cite{ray} to schedule and parallelize the tasks over multiple CPUs and machines.
+Even with incremental evaluation, composing and evaluating $Q(s'(R))$ is the single most expensive search operation.  Thus, we parallelize across candidate pipelines and data partitions. The prototype uses Ray~\cite{ray} to schedule and parallelize  over multiple CPUs and machines.
 
 \stitle{Search Parallelism}
 Conceptually, we execute all expansions for a given plan $s$ in parallel.  We materialize the incremental deltas in memory, and evaluate the quality of each $s' = c\circ s$ in parallel using a thread pool.  Each thread drops a given $s'$ if its quality is lower than $\gamma\times$ the maximum quality from the previous \texttt{WHILE} iteration or the local thread.  At the end of the \texttt{WHILE} iteration, the threads synchronize to compute the highest quality, and flush the remaining candidates using the up-to-date quality value.
