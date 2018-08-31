@@ -4,7 +4,7 @@ This section describes our system optimizations.
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{figures/distributed.pdf}
-    \caption{In each iteration, each worker starts with a subset of the priority queue (boxes).  The driver sends a subset of data transformations from $\Sigma$ (circles) to generate candidate pipelines (box-circles).  A series of synchronization points identify the globally top $\gamma$ candidates and redistributes them across the workers.   \label{fig:algo}}
+    \caption{In each iteration, each worker starts with a subset of the priority queue (boxes).  The driver sends the ppol of conditional assignments (circles) to generate candidate pipelines (box-circles).  A series of synchronization points identify the globally top $\gamma$ candidates and redistributes them across the workers.   \label{fig:algo}}
 \end{figure}
 
 
@@ -46,8 +46,8 @@ This section describes our system optimizations.
 }
 
 
-\subsection{Parameter Space Sampler}
-By default, users simply specify the domain of an operator parameter as a list of values, and \sys uniformly samples from the domain.  In addition, users can specify two types of parameters, for which \sys can apply search optimizations:
+\subsection{Parameter Sampler}
+By default, users simply specify an operator's parameter domain as a list of values, and the Parameter Sampler uniformly samples from the domain. Non-uniform sampling is possible, and worth exploring in future work.   In addition, users can specify two types of parameter properties, for which \sys can apply search optimizations:
 
 \begin{itemize}[leftmargin=*,topsep=.3em,itemsep=-.2em,partopsep=-.5em]
   \item \stitle{Attribute Name Parameters} If the parameter represents an attribute in the database, then \sys can infer the domain of allowable values.   For example, a numerical outlier detection algorithm might apply to a single attribute or a subset of attributes. \sys can also prune the paramater space by pruning attribute names that are irrelevant to the quality function.  
@@ -58,13 +58,15 @@ By default, users simply specify the domain of an operator parameter as a list o
 %which have the property that if the quality function    Another broad class of parameters in data cleaning methods are numerical parameters like thresholds and inference parameters. For these parameters, the user specifies a range (or a multi-dimensional grid). Often times, these parameters correspond to confidence metrics. In the example with the \texttt{City} table, the \texttt{ispell} method has a acceptance threshold for spell-checking. In these cases, we recommend that this search space is ordered fine-to-coarse. Where the most restrictive threshold is evaluated first towards increasingly less restrictive thresholds. 
 
 
-\subsection{Incremental Quality Evaluation}\label{s:qualityivm}
-
+\subsection{Quality Evaluator}\label{s:qualityivm}
 Most cleaning operators modify significantly fewer records than the entire dataset.  Since quality functions are simply aggregation queries, \sys can incrementally evaluate the quality function over the fixed records rather than the full dataset.  
-This is exactly the process of incremental view maintenance, and we use standard techniques to incrementally compute quality functions that \ewu{HAVE X and Y properties}.  
+This is exactly the process of incremental view maintenance, and we use standard techniques to incrementally compute quality functions.
 
-Suppose we have relation $R$, quality function $q$, and a set of conditional assignment expressions $C$.  When possible, \sys computes $q(R)$ once and then for each of the expressions $c \in C$ compute a delta such $q(c(R)) = q(R) + \delta_c(q(R))$.
+Suppose we have relation $R$, quality function $q$, and a set of conditional assignment expressions $C$.  When possible, \sys computes \red{$q(R)$} once and then for each of the expressions $c \in C$ compute a delta such $q(c(R)) = \red{q(R)} + \delta_c(q(R))$.
 For many types of quality functions such incremental computation can be automatically synthesized and can greatly save on computation time.
+Currently, this process is not automatic and \sys relies on programmer annotations for incremental updates.
+It is not hard to automate this process when possible, but this is orthogonal to the topic studied in this paper.
+The property that we would have to test is self-maintanability~\cite{gupta1996data}, and we would have to implement delta computation in relational algebra. 
 
 Let us consider a concrete example with the quality function $q_1$, a functional dependency checker, from the previous section.
 $R'$ is the resulting relation after applying \texttt{c} to all of the records.
@@ -81,13 +83,9 @@ leading to the following expression:
 \[
 q_1(R') = \red{q_1(R)} - \textsf{count}( r_{pred} \bowtie R )  + \textsf{count}( r'_{pred} \bowtie R )
 \]
-If we used a hash join to evaluate this quality function, the cost of incrementally maintaining is roughly linear in the size of the number records changed rather than the size of the relation.
+Evaluating this quality function using a hash join reduces the incremental evaluation cost to roughly linear in the size of the number records changed, rather than the size of the relation.
 
 % The consequence is that evaluating changes in quality can be very efficient for a large class of data cleaning problems.  The architecture of \sys is designed to exploit this property.  We assume conditional assignment generation to be expensive but quality evaluation to be fast.  An architecture that runs the entire pipeline before seeing the resultant quality is wasteful.
-
-
-
-
 
 
 \subsection{Pipeline Merging}
