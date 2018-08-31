@@ -31,7 +31,7 @@ We focus on three datasets used in prior data cleaning benchmarks.  Each dataset
 
 \stitle{London Air Quality} The dataset contains measurements of air pollution particulate matter from London boroughs~\footnote{\url{https://www.londonair.org.uk/london/asp/datadownload.asp}}. Around 2\% of the measurements (cells) are corrupted by a variety of different outliers including very large values as well as clipped very small values.  As the errors are mostly numerical in this dataset, the default quality function characterizes the smoothness of the measurements based on an autoregressive model.  Thus the function is defined with the running error of the smoothness model:
 \begin{verbatim}
-    SELECT avg(autoregression.error(window))
+    SELECT AVG(autoregression.error(window))
     FROM data [Range 5 hours];
 \end{verbatim}
 \noindent The default library consists of parametrized outlier detector methods from dBoost~\cite{mariet2016outlier} and pyod~\footnote{\url{https://pyod.readthedocs.io/en/latest/}}.  Both detect outliers and set them to the last known non-outlier value. \texttt{dBoost.histogram(peak\_theshold, outlier\_threshold, window\_size)} detects peaks in histograms of sliding windows of the data, \texttt{dBoost.gaussian(K, window\_size)} thresholds values outside $K$ standard deviations  from the mean of a sliding window, and \texttt{pyod.pca(outlier\_threshold, window\_size)}  applies PCA to sliding windows and thresholds them by the sum of weighted projected distances to the eigenvector hyperplane.
