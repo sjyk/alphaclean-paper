@@ -1,5 +1,4 @@
-\section{Problem Setting}
-
+\section{Problem Setting}\label{s:problem}
 This section presents the problem setting and definitions.  We will use the simplified example illustrated in Table \ref{example} to convey the concepts in \sys.  The \red{red} cells indicate value errors that need to be fixed.
 
 \begin{example}
@@ -27,8 +26,8 @@ Below, we will present the notion of cleaning operators and their relationship w
 Some of the cells contain errors highlighted in \red{red}. \label{example}}
   \end{table}
 
-\subsection{Conditional Assignment Operations}
-\sys generates cleaning pipelines that are composed of conditional assignment operations, which conditionally assign value $v$ to attribute $r[attr]$ if predicate $pred$ evaluates to true:
+\subsection{Conditional Assignments}
+\sys generates cleaning pipelines that are composed of conditional assignments, which conditionally assign value $v$ to attribute $r[attr]$ if predicate $pred$ evaluates to true:
 {\small\begin{verbatim}
     ca(r){
       if pred(r): r[attr] = v 
@@ -36,7 +35,7 @@ Some of the cells contain errors highlighted in \red{red}. \label{example}}
     }
 \end{verbatim}
 }
-\noindent A conditional assignment can evaluate over relation $R$ by evaluating over each record in the relation:  $ca(R) = \{ca(r) | r \in R\}$.   Note that conditional assignments can be coarse or fine-grained depending on the specificity of the predicate.  For instance, \texttt{ca(code.prefix(``NY''), code, ``NYC'')} applies to all records whose city code starts with "NY".  In contrast, three operations with predicates  \texttt{id=2}, \texttt{id=3}, \texttt{id=4} is equivalent for the example table, but each operation can be executed and added to a cleaning pipeline independently.  The difference in granularity will play a role in the size of the search space.
+\noindent A conditional assignment can evaluate over relation $R$ by evaluating over each record in the relation:  $ca(R) = \{ca(r) | r \in R\}$.   Note that conditional assignments can be coarse or fine-grained depending on the specificity of the predicate.  For instance, \texttt{ca(code.prefix(``NY''), code, ``NYC'')} applies to all records whose city code starts with "NY".  In contrast, three operations with predicates  \texttt{id=2}, \texttt{id=3}, \texttt{id=4} is equivalent for the example table, but each operation can be executed and added to a cleaning pipeline independently.  The difference in granularity will play a role in the runtime and quality of the search results.
 
 % The size of the search space can be controlled by how coarse- or fine-grained these repair functions are.  For example, one could wrap the entire results of \texttt{ispell(rec)} into a single function or break it up into each modification per distinct value.  The result is that $x_i$ is a set of each such repair, and over the entire library and different parameter settings, we can generate a set $X$ of all repairs possible.
 
@@ -47,11 +46,11 @@ A cleaning pipeline is a composition of conditional assignment operations, where
 
 % \sys searches through a parameterized library of data cleaning operations to find repairs to a table. We will see that the simple experiment in the previous section about identifying syntatic inconsistencies is actually quite common and a practical problem for existing systems.
 
-\sys manages a set of $O = \{o_1, o_m\}$  cleaning operators that represent specialized data cleaning systems or functions.  A given operator $o_i(\phi_k)$ can be parameterized with parameters $\phi_k$ from a space of allowable parameter values $\Phi_i$.   
+\sys manages a library of cleaning operators $L = \{o_1, \cdots, o_m\}$ that represent specialized data cleaning systems or functions.  A given operator $o_i(\phi_k, R)$ runs over a relation $R$ and is parameterized with parameters $\phi_k$ from a space of allowable parameter values $\Phi_i$.  For convenience, an operator can be defined with respect to a tuple $r\in R$  or an attribute value, rather than the whole relation, and \sys will automatically translate it into an operator over the full relation.
 
-For instance, a spell checker  \texttt{ispell(d, attr)} can be tuned by setting a maximum edit distance $d$ between the dictionary word and the attribute value $r[attr]$.  The parameter space is thus $\mathbb{N}$ for $d$, and all attributes in the relation for $attr$. Similarly, \texttt{edit\_match(d, attr)} is an edit distance matcher that searches for other \texttt{attr} values in $R$ within an edit distance $d$ of $r[attr]$, and sets $r[attr]$ to the most frequent value.  In this case, the value of the assignment is computed dynamically.  Finally, a method such as \texttt{chase(fd)} would execute the chase algorithm~\cite{} for a functional dependency $fd$ chosen from a space of functional dependencies (e.g., provided by the user).
+For instance, a spell checker  \texttt{ispell(d, attr)} can be tuned by setting a maximum edit distance $d$ between the dictionary word and the attribute value $r[attr]$.  The parameter space is thus $\mathbb{N}$ for $d$, and all attributes in the relation for $attr$. Similarly, \texttt{edit\_match(d, attr)} is an edit distance matcher that searches for other \texttt{attr} values in $R$ within an edit distance $d$ of $r[attr]$, and sets $r[attr]$ to the most frequent value.  In this case, the value of the assignment is computed dynamically.  Finally, a method such as \texttt{chase(fd, R)} would execute the chase algorithm~\cite{Deutsch2008TheCR} for a functional dependency $fd$ chosen from a space of functional dependencies (e.g., provided by the user).
 
-In each case, a parameterized operator $o_i(p_k)$ returns a set of conditional assignment operations whose predicates are non-overlapping.  The set of operations can change depending on the input relation $R$.   For convenience, let $l_{i,k} = o_i(\phi_k)$ denote a parameterized version of $o_i$, and library $L = \{l_{i,j}, \cdots \}$ be the set of all possible parameterized operators.
+Each parameterized operator $o_i(p_k, R)$ returns a set of conditional assignment operations whose predicates are non-overlapping.  The set of operations can change depending on the input relation $R$.   % For convenience, let library $L=\{\}$let $l_{i,k} = o_i(\phi_k, R)$ denote a parameterized version of $o_i$, and library $L = \{l_{i,j}, \cdots \}$ be the set of all possible parameterized operators.
 
 % L = \{\texttt{l}_1,...,\texttt{l}_N\}$ of data cleaning operators that are specialized cleaning systems or functions that will be used to build a cleaning pipeline. Each operator takes in parameters $\phi_i$ from an overall (continuous or discrete) set of parameters $\Phi_i$:
 
@@ -69,34 +68,29 @@ In each case, a parameterized operator $o_i(p_k)$ returns a set of conditional a
 \subsection{Quality Functions}
 
 A quality function measures a specific notion of cleanliness for a relation, and is used as the cost model for the pipeline search.  The predominant way that quality functions are defined is in terms of SQL aggregation queries. For example, the number of functional dependency violations (e.g., $\texttt{city\_name} \rightarrow \texttt{city\_code}$) is expressible as:
-\begin{lstlisting}
+{\small\begin{lstlisting}
   q1(T): SELECT count(1)
          FROM T as c1, T as c2,
          WHERE (c1.city_name == c2.city_name) AND
                (c1.city_code <> c2.city_code)
-\end{lstlisting}
-Conditional functional dependency violations is a well-studied quality function, and many systems optimize for this class of objectives~\cite{rekatsinas2017holoclean,DBLP:conf/sigmod/ChuIKW16}.   
+\end{lstlisting}}
+\noindent Conditional functional dependency violations is a well-studied quality function, and many systems optimize for this class of objectives~\cite{rekatsinas2017holoclean,DBLP:conf/sigmod/ChuIKW16}.   
 
-However, this example highlights that \emph{even seemingly simple data cleaning problems can require the flexibility to express multiple quality functions.}   For example, record 1 does not violate the above functional dependency, and will be missed by most functional dependency solvers.  Suppose the analyst observed a histogram of city names and noted that there were a large number of singleton entries. Thus, she could write a second quality function that counts the number of singleton entries.  This is an example of a quality function that other systems such as HoloClean and \ewu{XXX} do not support as input:
-
+However, this example highlights that \emph{even seemingly simple data cleaning problems can require the flexibility to express multiple quality functions.}   For example, record 1 does not violate the above functional dependency, and will be missed by most functional dependency solvers.  Suppose the analyst observed a histogram of city names and noted that there were a large number of singleton entries. Thus, she could write a second quality function that counts the number of singleton entries.  This is an example of a quality measure that other systems such as Holoclean and Holistic Data Cleaning do not support as input~\cite{rekatsinas2017holoclean,DBLP:conf/sigmod/ChuIKW16}:
+{\small
 \begin{lstlisting}
   q2(T): SELECT count(1)
-         FROM ( SELECT count(1) as cnt
-                FROM T,
-                GROUP BY city_name 
-                HAVING cnt = 1
-               ) as tmp
-\end{lstlisting}
-Finally, the user can embed the downstream application as a user defined function (UDF).  For instance, the machine learning model accuracy can be added as a quality function:
-\begin{lstlisting}
+         FROM ( SELECT count(1) as cnt FROM T,
+                GROUP BY city_name HAVING cnt = 1)
+\end{lstlisting}}
+Finally, the user can embed the downstream application as a user defined function (UDF).  For instance, the machine learning model accuracy can be added as a quality function that calls a UDF \texttt{model.eval()}:
+{\small\begin{lstlisting}
   q3(T): SELECT avg(err) AS acc
-         FROM ( SELECT model.eval(X) = Y
-                FROM T )
-\end{lstlisting}
+         FROM ( SELECT model.eval(X) = Y FROM T )
+\end{lstlisting}}
+\noindent \sys lets the user compose linear combinations of quality functions together. We model the composition over $n$ individual quality functions as $Q(T) = \sum_{i=1}^n w_iq_i(T)$.  For example, $n=2$ in the example, and captures the semantic functional dependency issues as well as the syntactic string splitting errors in a single cost model.  Our experiments simply set $w_i=\frac{1}{n}$.
 
-\noindent \sys lets the user compose linear combinations of quality functions together. We model the composition over $n$ individual quality functions as $Q(T) = \sum_{i=1}^n w_iq_i(T)$.  For example, $n=2$ in the example, and captures the semantic functional dependency issues as well as the syntactic string splitting errors in a single cost model.
-
-We designed the quality function in this way for several reasons.  SQL aggregations can be incrementally computed and maintained, and can be efficiently approximated.  This is important because each conditional assignment typically modifies a small set of records, and thus allows efficient re-computation that scales to the number of cleaned records rather than the size of the dataset.  The linear compositions enables parallelization across each $q_i$ term, and the aggregation functions are typically algebraic functions that can be parallelized across data partitions.  The combination of incremental maintenance, and data and quality function parallelization speeds up evaluation by up to \ewu{XXX$\times$} in our experiments.
+We designed the quality function in this way for several reasons.  SQL aggregations can be incrementally computed and maintained, and can be efficiently approximated.  This is important because each conditional assignment typically modifies a small set of records, and thus allows efficient re-computation that scales to the number of cleaned records rather than the size of the dataset.  The linear compositions enables parallelization across each $q_i$ term, and the aggregation functions are typically algebraic functions that can be parallelized across data partitions.  The combination of incremental maintenance, and data and quality function parallelization speeds up evaluation by up to 20x in our experiments.
 
 % Without loss of generality, let $Q(R)$ be a quality function which maps from the set of all possible instances $Q(R): \mathcal{R} \mapsto [0,1]$ be a quality function where $0$ implies that the instance $R$ is clean, and a higher value correspond to a dirtier table.
 % Since running a plan $p$ on the initial dirty table $R_{dirty}$ returns another table, $Q(p(R_{dirty}))$ is able to return a quality score for any pipeline in the plan space.
@@ -104,18 +98,19 @@ We designed the quality function in this way for several reasons.  SQL aggregati
 
 
 
-\subsection{Problem Definition}
-We are now ready to present cell-level data cleaning as the following search problem:
+\subsection{Problem Statement}
+We now present the cell-level cleaning search problem:
 \begin{problem}[Search Problem]%[$\textsf{clean}(Q,R_{dirty},L)$]
-Given quality function $Q$, relation $R_{dirty}$, find valid plan $p^* \in \mathcal{P}$ that optimizes $Q$:
+Given quality function $Q$, Library $L$, relation $R_{dirty}$, find valid plan $p^* \in \mathcal{P}$ that optimizes $Q$:
 \[
-p^* = ~ \min_{p \in P} Q( p(R_{dirty}) ).  
+p^* = ~ \argmin_{p \in P} Q( p(R_{dirty}) ).  
 \]
 \end{problem}
-$p^*(R_{dirty})$ returns the cleaned table, and $p^*$ can be applied to any table that is union compatible with $R_{dirty}$.  A desirable property of this problem formulation is that it directly trades off runtime with cleaning accuracy and can be stopped at any time (though the cleaning program may be suboptimal).
+$p^*(R_{dirty})$ returns the cleaned table, and $p^*$ can potentially be applied to any table that is union compatible with $R_{dirty}$.  A desirable property of this problem formulation is that it directly trades off runtime with cleaning accuracy and can be stopped at any time (though the cleaning program may be suboptimal).
 
-This problem is very challenging because the library $L$ can be too large to materialize, and the set of possible predicates is potentially unbounded.  To limit the search space, we assume predicates are of the form $attr = v$ where $v$ is a value found in the relation.  We also rely on properties of the quality function to speed up and parallelize the evaluation of candidate pipelines and the resulting relation quality.  \ewu{Any other hints to forward refreenc?} The next sections describe our system architecture and optimizations to efficiently search the plan space.
+This problem is challenging because the set of all parameterized cleaning operators can be too large to materialize, and the set of possible conditional assignments is potentially unbounded.  We  rely on properties of the quality function to quickly assess the quality of candidate pipelines in parallel. The next sections describe our system architecture and optimizations to efficiently search the plan space.
 
+% To limit the search space, we assume predicates are of the form $attr = v$ where $v$ is a value found in the relation.  We also
 %  At the limit, \sys simply explores $P$ and identifies the optimal plan.
 
 

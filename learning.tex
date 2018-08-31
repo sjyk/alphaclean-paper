@@ -1,31 +1,21 @@
-\section{Learning Pruning Rules}\label{s:pruning}
-Data errors are often systematic in nature where the correlate with specific attribute values.
-\sys can exploit such correlations in the dataset to adaptively prune the search space.
-The basic strategy is to apply the search independently to different partitions of the dataset.
-\sys can exploit shared structure between these data partitions by learning pruning rules.
+\subsection{Learning Pruning Rules}\label{s:pruning}
 
-\subsection{Partitioning A Dataset}
-Many large datasets are naturally partitioned, e.g., by timestamp or region. 
-The idea is to partition the dataset in such a way that errors are local to a small number of records.
-This means that a fix for a given record does not affect the other records outside of the partition.
-There is a relationship between partitioning and the quality functions defined.
-For example, quality functions derived from functional dependencies can define blocks by examining the violating tuples linked through the dependency.  Similarly, users can define custom partitioning functions.  In our current implementation, we partition the input relation by row by user-specified blocking rules.
+Traditionally, data cleaning systems manually implement pruning heuristics for a fixed quality function that can work for any dataset. For example, the Chase~\cite{} used in functional dependency resolution does not make an edit to the table unless it enforces at least one tuple's FD relationship.  Similarly, in entity matching problems, one restricts the search to only tuples that satisfy a blocking (clustering) criteria.  These can be viewed as pre-conditions over the search space.
 
-\subsection{Overview and Intuition}\label{s:dynlearn}
-The main idea is to develop search pruning rules to minimize the number of candidate programs to evaluate.  Rather than hand-write pruning heuristics {\it a priori}, which is challenging when the user is presented with a new dataset, this optimization leverages the problem structure to learn pruning rules during the search process.
-The search algorithms in  most automatic data cleaning frameworks are carefully tuned for a specific quality function or class of quality functions. For example, the chase used in functional dependency resolution does not make an edit to the table unless it enforces at least one tuple's FD relationship.    Similarly, in entity matching problems, one restricts the search to only matching tuples that are likely to be similar based on some similarity metric.
-These can be viewed as search pre-conditions that exploit the structure of the cleaning problem to a more tractable search space.
-Note that these are not static optimizations: knowing how to prune the search space requires identifying and modeling the structure of the underlying data errors and how they interact with the data transformations.
-% the underlying data or making strong modeling assumptions about the types of transformations used.
+Our idea is to {\it learn} pruning rules that are data and quality function dependent.  Our hypothesis is that data errors are often systematic in nature, and correlated with specific attributes and their values.  Our pruning optimization seeks to distinguish conditional assignments that are likely to contribute to the final cleaning pipeline, and those that will not.  To do so, the basic strategy is to independently execute the Search algorithm on partitions of the dataset, and learn a prediction model.   
+
+% Note that these are not static optimizations: knowing how to prune the search space requires identifying and modeling the structure of the underlying data errors and how they interact with the data transformations.
 
 
-\subsection{Approach}
-When \sys executes the search algorithm on each block of data, it generates a cleaning program that optimizes the quality metric for that block.  In many cases, the dataset can be partitioned into a large number of blocks that each serve as sources of training examples for a learned pruning model.  Each transformation in a block's  cleaning plan $s$ can be labeled as a positive training example, while all other transformations serve as negative examples.
-As \sys processes more blocks, the union of these training sets can be sufficient to train a classifier to predict whether a given transformation will be included in the optimal program.  In our approach, the prediction model $M(p): P \mapsto \{0,1\}$ is over the data transformations and not the data; is this sense, \sys learns pruning rules in a dynamic fashion. 
+
+\stitle{Approach}
+As described in Section~\ref{s:search}, \sys uses data parallelism to execute search for each block of the dataset in parallel.  Thus, each block results in an optimal cleaning pipeline.  \sys models the optimal cleaning pipeline for each block as a set of training examples.  Specifically, cach conditional assignment $c$ in a block's optimal cleaning plan $s*$ can be labeled as a positive training example, while all other conditional assignments that were not used are negative examples.  
+
+As \sys processes more blocks, it trains a classifier to predict whether a given transformation will be included in the optimal program, based on the training examples across the blocks.  In our approach, the prediction model $M(p): P \mapsto \{0,1\}$ is over the data transformations and not the data; is this sense, \sys learns pruning rules in a dynamic fashion. 
 New expansions are tested against the classifier before the algorithm proceeds.
 Internally, \sys uses a Logistic Regression classifier that is biased towards false positives (i.e., keeping a bad search branch) over false negatives (e.g., pruning a good branch). This is done by training the model and shifting the prediction threshold until there are no False Negatives. 
 
-\subsection{Featurization}
+\stitle{Featurization}
 Note to use this approach, we have to featurize each conditional assignment $c$ into a feature vector.
 We \emph{do not} featurize the data as in other learning-based data cleaning systems.
 Now, we describe how each conditional assignment is described as a feature vector.
@@ -38,18 +28,7 @@ This feature called $f_{dc}$ is contains a 1-hot feature vector describing which
 
 We believe this is one of the reasons why a simple best-first search strategy can be effective.  For the initial blocks, \sys searches without a learned pruning rule in order to gather evidence.  Over time, the classifier can identify systematic patterns that are unlikely to lead to the final cleaning program, and explore the rest of the space.  
 The features guide \sys towards those data cleaning methods/parameter settings that are most promising on previous blocks.
- \sys uses linear classifier and feature extractors because it can be trained quickly with few examples.   However, we speculate that across a sufficient number of cleaning problems that share common set of data transformations (say, within the same department), we may adapt a deep learning approach to automatically learn the features themselves. 
- 
- \subsection{Discussion}
-This incremental learning process can be viewed as form of reinforcement learning.
-\textbf{TODO}
-
-
-
-
-
-
-
+ \sys uses a linear classifier because it can be trained quickly with few examples.   However, we speculate that across a sufficient number of cleaning problems that share common set of data transformations (say, within the same department), we may adapt a deep learning approach to automatically learn the features themselves. 
 
 
 \iffalse
@@ -57,6 +36,7 @@ This incremental learning process can be viewed as form of reinforcement learnin
 \ewu{I emphasize this assuming the experiment exists!!!}
 One benefit of learning a pruning model for {\it data transformations} rather than relation instances is that it can potentially be reused or fine-tuned for new, but structurally similar, data cleaning problems.  For instance, when users iteratively refine the data quality measure, the problem is largely the same, and \sys can intialize the search with the previously learned model.  This has the potential to learn  {\it across data cleaning problems} rather than across blocks within a single problem.   \ewu{We evaluate the benefits of re-using models during iterative refinement in Section~\ref{XXX}.}
 \fi
+
 
 
  
