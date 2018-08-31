@@ -29,10 +29,10 @@ We focus on three datasets used in prior data cleaning benchmarks.  Each dataset
 
 \stitle{Hospital} This dataset contains UK Hospital information, and used in~\cite{he2016interactive, rekatsinas2017holoclean}.  Roughly 5\% of the cells are corrupted with mispellings, missing values, or other inconsistencies.  The default quality function tries to minimize the number of singleton cities with only one hospital, because it may be due to data errors (example in Section~\ref{s:problem}).  The default library contains: \texttt{ispell.replace(thresh, attr)} as described in Section~\ref{s:problem} replaces the attribute value if it is within a threshold of a dictionary value, \texttt{minhash.replace(thresh, attr)} runs the minhash de-duplication algorithm~\cite{broder2000min} to find similar values and sets them to be equal, and \texttt{fd.replace(fd)} enforces a functional dependency with the chase algorithm~\cite{aho1979theory}.
 
-\stitle{London Air Quality} The dataset contains measurements of air pollution particulate matter from London boroughs~\footnote{\url{https://www.londonair.org.uk/london/asp/datadownload.asp}}. Around 2\% of the measurements (cells) are corrupted by a variety of different outliers including very large values as well as clipped very small values.  As the errors are mostly numerical in this dataset, the default quality function characterizes the smoothness of the measurements based on an autoregressive model.  Thus the function is defined as:
+\stitle{London Air Quality} The dataset contains measurements of air pollution particulate matter from London boroughs~\footnote{\url{https://www.londonair.org.uk/london/asp/datadownload.asp}}. Around 2\% of the measurements (cells) are corrupted by a variety of different outliers including very large values as well as clipped very small values.  As the errors are mostly numerical in this dataset, the default quality function characterizes the smoothness of the measurements based on an autoregressive model.  Thus the function is defined with the running error of the smoothness model:
 \begin{verbatim}
-    SELECT smoothness(window.values) 
-    FROM Window(data);
+    SELECT avg(autoregression.error(window))
+    FROM data [Range 5 hours];
 \end{verbatim}
 \noindent The default library consists of parametrized outlier detector methods from dBoost~\cite{mariet2016outlier} and pyod~\footnote{\url{https://pyod.readthedocs.io/en/latest/}}.  Both detect outliers and set them to the last known non-outlier value. \texttt{dBoost.histogram(peak\_theshold, outlier\_threshold, window\_size)} detects peaks in histograms of sliding windows of the data, \texttt{dBoost.gaussian(K, window\_size)} thresholds values outside $K$ standard deviations  from the mean of a sliding window, and \texttt{pyod.pca(outlier\_threshold, window\_size)}  applies PCA to sliding windows and thresholds them by the sum of weighted projected distances to the eigenvector hyperplane.
 
@@ -146,7 +146,7 @@ Cleaning operators set the predicate granularity of the conditional assignments 
 \stitle{Sequential Data Cleaning}
 It is possible that a best-first search through an asynchronously generated candidate pool may affect problems where the precise sequence of data cleaning operations matters.
 In the last experiment, we consider a synthetic dataset similar to the \texttt{City} table in Section~\ref{s:problem}.  
-We construct a dataset of 10000 tuples with string attributes \textt{str1, str2}, and functional dependency \texttt{str1$\rightarrow$str2}.  We pick 5\% of the tuples and add random spelling errors or randomly swapped values. For 50\% of that subset of tuples, we concatenate \texttt{str1:str2} together with a separator drawn from \texttt{:,-}, set \texttt{str1} to the resulting string, and set \texttt{str2} to `'.  Thus, some tuples need to be accurately split before they can be cleaned to resolve functional dependency violations.
+We construct a dataset of 10000 tuples with string attributes \texttt{str1, str2}, and functional dependency \texttt{str1$\rightarrow$str2}.  We pick 5\% of the tuples and add random spelling errors or randomly swapped values. For 50\% of that subset of tuples, we concatenate \texttt{str1:str2} together with a separator drawn from \texttt{:,-}, set \texttt{str1} to the resulting string, and set \texttt{str2} to `'.  Thus, some tuples need to be accurately split before they can be cleaned to resolve functional dependency violations.
 
 We consider two baseline libraries that each solve one type of error: \texttt{Split} only contains the string split operator, \texttt{String} only contains the string edit operators \texttt{ispell} and \texttt{edit\_dist\_match}.  \texttt{Comb} combines both libraries.  The quality function is the sum of the number of functional dependency violations, spelling errors, and empty strings.  We run \sys with 16 threads.
 
@@ -159,8 +159,8 @@ These ignored operations may later become relevant in later rounds of the algori
 
 \begin{figure}[h]
 \centering
- \includegraphics[width=0.7\columnwidth]{exp/exp9a.png}
- \includegraphics[width=0.7\columnwidth]{exp/exp9b.png}
+ \includegraphics[width=0.8\columnwidth]{exp/exp9a.png}
+ \includegraphics[width=0.8\columnwidth]{exp/exp9b.png}
  \caption{We compare \sys on the physician dataset and the air quality dataset against single standalone systems that address functional dependencies (Holoclean HC) and numerical errors (DBoost) respectively. \sys can support both types of errors and wrap around a variety of frameworks, and tune these frameworks.  Standalone system performance on 5 random parameters is shown as dashed lines.   \label{exp9}}
 \end{figure}
 

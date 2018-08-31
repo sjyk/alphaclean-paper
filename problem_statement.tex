@@ -83,7 +83,7 @@ However, this example highlights that \emph{even seemingly simple data cleaning 
          FROM ( SELECT count(1) as cnt FROM T,
                 GROUP BY city_name HAVING cnt = 1)
 \end{lstlisting}}
-Finally, the user can embed the downstream application as a user defined function (UDF).  For instance, the machine learning model accuracy can be added as a quality function that calls a UDF \texttt{model.eval()}:
+Finally, the user can embed the downstream application as a user defined function (UDF).  For instance, the machine learning model accuracy can be added as a quality function that calls a UDF \texttt{model.eval()}.  In our experiments using the London Air Quality benchmark, we show how a parametric auto-regressive model that measures curve smoothness can be expressed as a quality function:
 {\small\begin{lstlisting}
   q3(T): SELECT avg(err) AS acc
          FROM ( SELECT model.eval(X) = Y FROM T )
