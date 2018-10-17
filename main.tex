@@ -1,48 +1,59 @@
-\documentclass{vldb}
+\documentclass[10pt,sigconf]{acmart}
 
-
-\usepackage{enumitem}
-\usepackage{framed}
-%\usepackage[11pt]{moresize}
-\usepackage{cprotect}
+\usepackage{hyperref}
 \usepackage{enumitem}
 \usepackage{listings}
-\usepackage{amstext}
-\usepackage{amstext}
-\usepackage{pdfpages}
-\usepackage{alltt}
-\usepackage{epstopdf}
-\usepackage{xspace,colortbl}
-\usepackage[USenglish]{babel}
-\usepackage{multirow}
-\usepackage[hyphens]{url}
-%\usepackage{subfigure}
-\usepackage{subcaption}
-\usepackage{graphicx}%%
-\usepackage{amssymb}
-\usepackage{fmtcount}
-\usepackage{amsfonts}
+\usepackage{cleveref}
+\usepackage{booktabs} % For formal tables
 \usepackage{xspace}
-\usepackage{amsmath}
-\usepackage{multirow}
-\usepackage[mathscr]{eucal}
-%\usepackage{psfrag}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{subcaption}
+\usepackage{balance}
 \usepackage{colortbl}
-\usepackage{hyperref}
-
 \usepackage{amsmath,amssymb}
 \usepackage[linesnumbered, ruled,vlined]{algorithm2e}
 
-\usepackage{caption}
-\usepackage{graphicx}
 
-\usepackage{bm}
-\usepackage[nospace]{cite}
-\usepackage{csquotes}
-\usepackage{enumitem}
-\usepackage{charter}
-
-\usepackage{courier}
+% \usepackage{enumitem}
+% \usepackage{framed}
+% %\usepackage[11pt]{moresize}
+% \usepackage{cprotect}
+% \usepackage{enumitem}
+% \usepackage{listings}
+% \usepackage{amstext}
+% \usepackage{amstext}
+% \usepackage{pdfpages}
+% \usepackage{alltt}
+% \usepackage{epstopdf}
+% \usepackage{xspace,colortbl}
+% \usepackage[USenglish]{babel}
+% \usepackage{multirow}
+% \usepackage[hyphens]{url}
+% %\usepackage{subfigure}
+% \usepackage{subcaption}
+% \usepackage{graphicx}%%
+% \usepackage{amssymb}
+% \usepackage{fmtcount}
+% \usepackage{amsfonts}
+% \usepackage{xspace}
+% \usepackage{amsmath}
+% \usepackage{multirow}
+% \usepackage[mathscr]{eucal}
+% %\usepackage{psfrag}
+% \usepackage{hyperref}
+% 
+% 
+% \usepackage{caption}
+% \usepackage{graphicx}
+% 
+% \usepackage{bm}
+% \usepackage[nospace]{cite}
+% \usepackage{csquotes}
+% \usepackage{enumitem}
+% \usepackage{charter}
+% 
+% \usepackage{courier}
 
 \lstset{basicstyle=\scriptsize\ttfamily,breaklines=true}
 \lstset{framextopmargin=50pt}
@@ -68,14 +79,14 @@
 
 
 
-\newtheorem{theorem}{Theorem}
-\newtheorem{example}{Example}
-\newtheorem{definition}{Definition}
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{example}{Example}
+% \newtheorem{definition}{Definition}
 \newtheorem{problem}{Problem}
-\newtheorem{property}{Property}
-\newtheorem{proposition}{Proposition}
-\newtheorem{lemma}{Lemma}
-\newtheorem{corollary}{Corollary}
+% \newtheorem{property}{Property}
+% \newtheorem{proposition}{Proposition}
+% \newtheorem{lemma}{Lemma}
+% \newtheorem{corollary}{Corollary}
 
 \newcommand{\detectlib}{\texttt{IsoDetect}\xspace}
 \newcommand{\company}{\texttt{Company X}\xspace}
@@ -176,14 +187,13 @@
 %\title{\sys: A Declarative Data Cleaning System Inspired By AlphaGo}
 \title{AlphaClean: Automatic Generation of \\Data Cleaning Pipelines }
 
-\numberofauthors{2}
-\author{ \alignauthor Sanjay Krishnan  \\
-\affaddr{University of Chicago} \\
-\affaddr{ skr@cs.uchicago.edu}\\
-\alignauthor Eugene Wu  \\
-\affaddr{Columbia University}\\
-\affaddr{ewu@cs.columbia.edu}
-}
+% \author{Eugene Wu}
+% \affiliation{\institution{Columbia University}}
+% \email{ewu@cs.columbia.edu}
+
+\author{Sanjay Krishnan}
+\affiliation{University of Chicago}
+\email{ skr@cs.uchicago.edu}
 
 
 
