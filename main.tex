@@ -162,43 +162,27 @@
 \newcommand{\gray}[1]{\textcolor{light-gray}{#1}}
 
 
+% Remove copyright block
+\settopmatter{printacmref=false}
+%Conference
+\acmConference[SIGMOD'19]{ACM SIGMOD}{2019}{Amsterdam, the Netherlands}
+\acmYear{2019}
+\copyrightyear{2019}
 
 
-\newcommand{\specialcell}[2][c]{%
-  \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
 
-\def\ojoin{\setbox0=\hbox{$\bowtie$}%
-  \rule[-.02ex]{.25em}{.4pt}\llap{\rule[\ht0]{.25em}{.4pt}}}
-\def\leftouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie}}
-\def\rightouterjoin{\mathbin{\bowtie\mkern-5.8mu\ojoin}}
-\def\fullouterjoin{\mathbin{\ojoin\mkern-5.8mu\bowtie\mkern-5.8mu\ojoin}}
-
-%\setlength{\belowcaptionskip}{-10pt}
-
-%\newcommand{\reminder}[1] {}
 \pagestyle{plain}
 
-%\input{coverletter.tex}
-
-%\title{\sys: Declarative Data Cleaning with \\ Learning and Tree-Search}
-% \title{\sys: Automatic Data Cleaning For Humans}
-% \title{\sys: Automatic Data Cleaning as Planning}
-% \title{\sys: Automatic Data Cleaning as Optimization}
-%\title{\sys: A Declarative Data Cleaning System Inspired By AlphaGo}
 \title{AlphaClean: Automatic Generation of \\Data Cleaning Pipelines }
 
 % \author{Eugene Wu}
 % \affiliation{\institution{Columbia University}}
 % \email{ewu@cs.columbia.edu}
 
-\author{Sanjay Krishnan}
-\affiliation{University of Chicago}
-\email{ skr@cs.uchicago.edu}
+% \author{Sanjay Krishnan}
+% \affiliation{University of Chicago}
+% \email{ skr@cs.uchicago.edu}
 
-
-
-%\fontsize{9pt}{11pt}
-%\selectfont
 
 
 \maketitle
@@ -208,14 +192,11 @@
 \end{abstract}
 
 
-%\pagenumbering{gobble}
-
-
 \input{introduction.tex}
 \input{background.tex}
- \input{problem_statement.tex}
+\input{problem_statement.tex}
 \input{architecture.tex} 
- \input{search.tex}
+\input{search.tex}
 \input{learning.tex}
 \input{experiments.tex}
 \input{relatedwork.tex}
