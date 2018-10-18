@@ -1,7 +1,7 @@
 \section{Problem Setting}\label{s:problem}
 This section presents the problem setting and definitions.  We will use the simplified example illustrated in Table \ref{example} to convey the concepts in \sys.  The \red{red} cells indicate value errors that need to be fixed.
 
-\begin{example}
+\begin{example}\it\label{e:1}
 Lisa finds that her application that uses the \texttt{City} table produces strange results, and suspects possible data error.  Lisa initializes \sys with a default set of string splitting, extraction, edit distance, and spell-check operators, and from a cursory examination of table, finds that the city name and code are not always consistent with each other.  Thus she adds the functional dependency \texttt{city\_name$\rightarrow$city\_code} to the quality function, which fixes records 2-4.  But when she examines the distribution of city names, she finds a large number of singleton city names, such as \texttt{San Francisco:SF}.  She simply augments the cost model to penalize the number of singleton city names, and \sys identifies the need to first split record 1  before also changing `SFO` to `SF` in order to satisfy the quality function.
 \end{example}
 
@@ -29,17 +29,20 @@ Some of the cells contain errors highlighted in \red{red}. \label{example}}
 \subsection{Conditional Assignments}
 \sys generates cleaning pipelines that are composed of conditional assignments, which conditionally assign value $v$ to attribute $r[attr]$ if predicate $pred$ evaluates to true:
 {\small\begin{verbatim}
-    ca(r){
+    ca(r):
       if pred(r): r[attr] = v 
       return r
-    }
 \end{verbatim}
 }
-\noindent A conditional assignment can evaluate over relation $R$ by evaluating over each record in the relation:  $ca(R) = \{ca(r) | r \in R\}$.   Note that conditional assignments can be coarse or fine-grained depending on the specificity of the predicate.  For instance, \texttt{ca(code.prefix(``NY''), code, ``NYC'')} applies to all records whose city code starts with "NY".  In contrast, three operations with predicates  \texttt{id=2}, \texttt{id=3}, \texttt{id=4} is equivalent for the example table, but each operation can be executed and added to a cleaning pipeline independently.  The difference in granularity will play a role in the runtime and quality of the search results.
+\noindent A conditional assignment can evaluate over relation $R$ by evaluating over each record in the relation:  $ca(R) = \{ca(r) | r \in R\}$.   Note that conditional assignments can be coarse or fine-grained depending on the specificity of the predicate.  
+
+\begin{example}\it
+  \texttt{ca(code.prefix(``NY''), code, ``NYC'')} sets the code to ``NYC'' for all records where the city code starts with ``NY''.  This single condition could be replaced with three operations with predicates  \texttt{id=2}, \texttt{id=3}, \texttt{id=4} {\it for the example table}, where operation can be executed and added to a cleaning pipeline independently. Our experiments highlight the role that different granularities play in the runtime and quality of the search results.
+ \end{example}
 
 % The size of the search space can be controlled by how coarse- or fine-grained these repair functions are.  For example, one could wrap the entire results of \texttt{ispell(rec)} into a single function or break it up into each modification per distinct value.  The result is that $x_i$ is a set of each such repair, and over the entire library and different parameter settings, we can generate a set $X$ of all repairs possible.
 
-A cleaning pipeline is a composition of conditional assignment operations, where the semantics of the composition $(ca_2 \circ ca_1)(r) = ca_2(ca_1(r))$, meaning $ca_1$'s changes may be overwritten by $ca_2$.  A composition can similarly be evaluated over a relation $R$: $(ca_2\circ ca_1)(R) = ca_2(ca_1(R))$.    Given a set of conditional assignments $\mathcal{C}$, the set of all compositions from $\mathcal{C}$ defines the plan space $\mathcal{P}$.   Next, we will discuss how the set of conditional assignments $\mathcal{C}$ is generated.
+A cleaning pipeline is a composition of conditional assignment operations, where $(ca_2 \circ ca_1)(r) = ca_2(ca_1(r))$. Note that $ca_1$'s changes may be overwritten by $ca_2$.  A composition can similarly be evaluated over a relation $R$: $(ca_2\circ ca_1)(R) = ca_2(ca_1(R))$.    Given a set of conditional assignments $\mathcal{C}$, the set of all compositions from $\mathcal{C}$ defines the plan space $\mathcal{P}$.   Next, we will discuss how the set of conditional assignments $\mathcal{C}$ is generated.
 
 
 \subsection{Cleaning Operators}
@@ -48,7 +51,9 @@ A cleaning pipeline is a composition of conditional assignment operations, where
 
 \sys manages a library of cleaning operators $L = \{o_1, \cdots, o_m\}$ that represent specialized data cleaning systems or functions.  A given operator $o_i(\phi_k, R)$ runs over a relation $R$ and is parameterized with parameters $\phi_k$ from a space of allowable parameter values $\Phi_i$.  For convenience, an operator can be defined with respect to a tuple $r\in R$  or an attribute value, rather than the whole relation, and \sys will automatically translate it into an operator over the full relation.
 
-For instance, a spell checker  \texttt{ispell(d, attr)} can be tuned by setting a maximum edit distance $d$ between the dictionary word and the attribute value $r[attr]$.  The parameter space is thus $\mathbb{N}$ for $d$, and all attributes in the relation for $attr$. Similarly, \texttt{edit\_match(d, attr)} is an edit distance matcher that searches for other \texttt{attr} values in $R$ within an edit distance $d$ of $r[attr]$, and sets $r[attr]$ to the most frequent value.  In this case, the value of the assignment is computed dynamically.  Finally, a method such as \texttt{chase(fd, R)} would execute the chase algorithm~\cite{Deutsch2008TheCR} for a functional dependency $fd$ chosen from a space of functional dependencies (e.g., provided by the user).
+\begin{example}\it\label{e:2}
+  The spell checker  \texttt{ispell(d, attr)} in Example~\ref{e:1} can be tuned by setting a maximum edit distance $d$ between the dictionary word and the attribute value $r[attr]$.  The parameter space is thus $\mathbb{N}$ for $d$, and all attributes in the relation for $attr$. Similarly, \texttt{edit\_match(d, attr)} is an edit distance matcher that searches for other \texttt{attr} values in $R$ within an edit distance $d$ of $r[attr]$, and sets $r[attr]$ to the most frequent value.  In this case, the value of the assignment is computed dynamically.  Finally \texttt{chase(fd, R)} is parameterized by a functional dependency $fd$ from a user-provided set of FDs, and will run the chase algorithm~\cite{Deutsch2008TheCR} for $fd$. 
+\end{example}
 
 Each parameterized operator $o_i(p_k, R)$ returns a set of conditional assignment operations whose predicates are non-overlapping.  The set of operations can change depending on the input relation $R$.   % For convenience, let library $L=\{\}$let $l_{i,k} = o_i(\phi_k, R)$ denote a parameterized version of $o_i$, and library $L = \{l_{i,j}, \cdots \}$ be the set of all possible parameterized operators.
 
