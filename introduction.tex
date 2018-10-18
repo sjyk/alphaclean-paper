@@ -1,5 +1,5 @@
 \section{Introduction}\label{intro}\sloppy
-Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}, and analysts report spending upwards of 80\% of their time in cleaning and preparing data before analysis. 
+Data cleaning is widely recognized as a major challenge in almost all forms of data analytics~\cite{nytimes}, and analysts report upwards of 80\% of analysis time in data cleaning and preparation.
 Improperly handled errors can affect the performance and accuracy of downstream applications such as reports, visualizations, and machine learning models.
 In response, the research community has developed increasingly sophisticated methods for detecting and automatically repairing errors in large datasets~\cite{dc, rekatsinas2017holoclean, DBLP:journals/pvldb/KrishnanWWFG16, DBLP:conf/sigmod/ChuIKW16, mudgal2018deep, doan2018toward}.
 The burden on the analyst is gradually shifting away from the design of hand-written data cleaning scripts to building and tuning complex pipelines of automated data cleaning libraries~\cite{krishnan2016hilda}.
@@ -10,12 +10,13 @@ Data cleaning pipelines are typically not this opaque.
 Many popular data cleaning systems restrict their cleaning operations to cell replacements~\cite{rekatsinas2017holoclean,DBLP:conf/sigmod/ChuIKW16, DBLP:journals/pvldb/KrishnanWWFG16}.
 Since these systems preserve schema (same input and output types), they can be reordered, queried/optimized independently, and ensembled in ways that general machine learning pipelines cannot.
 Second, the common objective functions considered in data cleaning, like integrity constraints and goodness-of-fit, are often amenable to incremental computation (can be updated from deltas)~\cite{fan2014incremental}.
-These observations suggest rethinking parameter tuning for data cleaning pipelines, and this paper studies the problem with a new framework called \sys.
+These observations suggest rethinking parameter tuning for cleaning pipelines, and we present a new framework called \sys.
 
-The main architectural insight is relatively straight-forward: rather than treating the cleaning pipeline as a parameterized black-box, we can assess the fine-grained impact of individual repairs that a data cleaning system will make for each possible parameter setting.
-To use \sys, users define data quality functions in terms of weighted sum over SQL aggregates over the input table.  This is a highly expressive interface that can express many popular quality measures including integrity constraint violations~\cite{ilyas2015trends} and numerical outliers~\cite{bailis2017macrobase}, as well as application-specific quality notions such as machine learning training accuracy.
-Then, users define a library of desired data cleaning operators and their parameter spaces.
-As \sys iterates through the parameter settings, each operator suggests a \emph{candidate} repair to the table.
+The main idea is relatively straight-forward: rather than treat the entire pipeline as a single parameterized black-box, we assess the fine-grained impact of individual repairs that a data cleaning system will make for each possible parameter setting.
+To use \sys, users define data quality functions as SQL aggregation queries (with user defined aggregates) over the input table.  This readily expresses popular quality measures such as integrity constraint violations~\cite{ilyas2015trends} and numerical outliers~\cite{bailis2017macrobase}, as well as application-specific quality notions such as machine learning training accuracy or goodness-of-fit to a model.  Users can compose linear combinations of quality functions as well.  This flexibility can help users across different domains evaluate different notions of quality within a single system.
+
+Users define a library of data cleaning operators that are relevant to their domain.  Operators are modeled as parameterized black boxes.  This lets \sys support existing data transformations clipping or value imputation, as well as entire data cleaning systems such as HoloClean~\cite{rekatsinas2017holoclean}, as operators.
+As \sys searches the parameter settings, each operator suggests a \emph{candidate} repair to the table.
 Separate threads search through the pool of candidates to decide a sequence of repairs to construct (a cleaning pipeline) that improves the quality function.
 
 The search algorithm is implemented as a greedy tree-search that sequences the repairs~\cite{russell2016artificial}.
@@ -24,7 +25,7 @@ Thus, it is important to avoid fully evaluating a path's quality and expanding u
 \sys dynamically learns a model to avoid executing the pipeline and quality function in order to evaluate a given path, and can be tuned to have a low false positive rate when pruning candidate paths.  
 Furthermore, the tree search can be easily parallelized across both candidate paths, as well as across partitions of the dataset based on properties of the quality function.
 We use periodic synchronization to update the prediction model across parallel searches and merge transformations that repair disjoint sets of tuples. 
-This algorithm is clearly heuristic and \textbf{\emph{our primary hypothesis is that many data cleaning problems rarely encounter pathological cases, and thus a general search algorithm combined with recent search optimization heuristics from AI can efficiently search the space}}.
+\textbf{\emph{This algorithm is best effort and our primary hypothesis is that many data cleaning problems rarely encounter pathological cases, and thus a general search algorithm combined with recent search optimization heuristics from AI can efficiently search the space}}.
 
 Recent work has highlighted the need for ensembles of cleaning systems to address real-world data errors~\cite{DBLP:journals/pvldb/AbedjanCDFIOPST16}.  In addition to supporting quality functions that can express mixtures of different types of data errors, \sys exhibits many desirable properties for these use cases.  
 First, it can optimize over disparate data cleaning systems (that each address different errors) that are integrated as \sys cleaning operators.  Second, it can identify subtle differences between similar cleaning systems to select the repairs best suited to the quality function.  Even in cases where an existing cleaning system is specifically designed for the errors in the dataset (e.g., integrity constraints), \sys can combine other cleaning operators to further improve the repairs.  Our experiments show that one of the most powerful benefits of \sys comes from the ensembling effects and its natural robustness to redundancy and/or distracting pipeline components.

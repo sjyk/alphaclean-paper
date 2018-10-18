@@ -1,6 +1,8 @@
 \section{Background}\label{s:background}
 We study parameter tuning for systems that address \emph{cell inconsistencies}, where record values are missing, incorrect, contain inconsistent references to the same entities, or contain artifacts from the extraction process. 
 
+\ewu{Different pruning rules, samples of generated pipelines at final stage and during merging.  }
+
 \subsection{Motivation}
 Our goal is to develop techniques to automatically generate and tune data cleaning pipelines based on user-specified quality characteristics.  Thus, the user can primarily focus on composing and expressing data quality issues, and allow the system to explore the space of physical cleaning plans.  We would like the search procedure to be \textbf{progressive}, in the sense that it quickly generates acceptable cleaning plans, and refines those plans over time.  Thus, the user can immediately assess her hypothesis, or test multiple hypotheses in parallel.
 
