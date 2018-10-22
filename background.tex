@@ -48,11 +48,14 @@ We compare hyperparameter search for three fixed pipelines:  single-operator pip
 But this issue is often not present in data cleaning problems.
 If we consider data cleaning operators that preserve schema (same input and output types), they can be reordered, queried/optimized independently, and ensembled in ways that general machine learning pipelines cannot.
 For example, what if we independently optimized both single-operator pipelines (\texttt{edit\_dist\_match}) and (\texttt{ispell}), and then took the consensus between their repairs?
-Such operations are disallowed in current hyper-parameter tuning approaches. \ewu{We also include the curve when solving this problem with \sys; the next sections describe the design to accelerate such cleaning problems.}
+Such operations are disallowed in current hyper-parameter tuning approaches. 
 
-\stitle{Runtime Bottlenecks} Finally, hyperparameter tuning algorithms are designed for a paradigm where the objective function is very expensive to evaluate, e.g., training and evaluating a neural network or running a simulation. This delays any feedback until the entire pipeline is evaluated, which can be very expensive for large datasets. Data cleaning is fundamentally a form of constraint satisfaction---easy to verify but hard to satisfy.
-Each candidate pipeline can be much more expensive to compute than evaluating the cost model (e.g., for Denial Constraints).  This bottlenecks any end-to-end tuning on the most expensive step in the pipeline.
-So if one operator is ill-suited for the task and hangs, the entire pipeline is bottlenecked.
+This is the main intuition behind \sys: rather than treating a pipeline as a monolithic parametrized unit, we decompose it into its constituent repairs.
+The system then interleaves those repairs that improve the objective function.
+These repairs can be generated asynchronously in a thread of workers that query each cleaning operator with different parameters--making it robust to operators that are slow or straggle on difficult datasets.
+We also include the curve for when solving this problem with \sys on Figure \ref{fig:teaser}; the next sections describe the design to accelerate such cleaning problems.
+
+
 
 
 
