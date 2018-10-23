@@ -1,30 +1,5 @@
-\section{Problem Setting}\label{s:problem}
-This section presents the problem setting and definitions.  We will use the simplified example illustrated in Table \ref{example} to convey the concepts in \sys.  The \red{red} cells indicate value errors that need to be fixed.
-
-\begin{example}\it\label{e:1}
-Lisa finds that her application that uses the \texttt{City} table produces strange results, and suspects possible data error.  Lisa initializes \sys with a default set of string splitting, extraction, edit distance, and spell-check operators, and from a cursory examination of table, finds that the city name and code are not always consistent with each other.  Thus she adds the functional dependency \texttt{city\_name$\rightarrow$city\_code} to the quality function, which fixes records 2-4.  But when she examines the distribution of city names, she finds a large number of singleton city names, such as \texttt{San Francisco:SF}.  She simply augments the cost model to penalize the number of singleton city names, and \sys identifies the need to first split record 1  before also changing `SFO` to `SF` in order to satisfy the quality function.
-\end{example}
-
-
-Below, we will present the notion of cleaning operators and their relationship with the conditional assignments that are composed into cleaning plans, quality functions that serve as the cost model, and the formal problem statement that \sys will solve.
-
-  \begin{table}[t]
-	\small
-  \centering
-  \begin{tabular}{|l|l|l|}
-  \hline
-  \rowcolor[HTML]{000000} 
-  & \white{name}            & \white{code}   \\ \hline
-  1 & \red{\textbf{San Francisco:SFO}}                    &    \red{\textbf{`'}}                               \\ \hline
-  2& \red{\textbf{New York}}           & NY                                  \\ \hline
-  3 & New York City                    & \red{\textbf{NYC}} \\ \hline
-  4 & \red{\textbf{San Francisc}}      & SF                                  \\ \hline
-  5 & San Francisco                         & SF                                 \\ \hline
-  7 & New York City                    & NY                                  \\ \hline
-  \end{tabular}
-    \caption{The \texttt{City} relation contains two attributes \textsf{name} and \textsf{code}. 
-Some of the cells contain errors highlighted in \red{red}. \label{example}}
-  \end{table}
+\section{Repairs}\label{s:problem}
+This section presents the problem setting and definitions.  
 
 \subsection{Conditional Assignments}
 \sys generates cleaning pipelines that are composed of conditional assignments, which conditionally assign value $v$ to attribute $r[attr]$ if predicate $pred$ evaluates to true:
