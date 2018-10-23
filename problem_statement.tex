@@ -1,30 +1,5 @@
-\section{Problem Setting}\label{s:problem}
-This section presents the problem setting and definitions.  We will use the simplified example illustrated in Table \ref{example} to convey the concepts in \sys.  The \red{red} cells indicate value errors that need to be fixed.
-
-\begin{example}\it\label{e:1}
-Lisa finds that her application that uses the \texttt{City} table produces strange results, and suspects possible data error.  Lisa initializes \sys with a default set of string splitting, extraction, edit distance, and spell-check operators, and from a cursory examination of table, finds that the city name and code are not always consistent with each other.  Thus she adds the functional dependency \texttt{city\_name$\rightarrow$city\_code} to the quality function, which fixes records 2-4.  But when she examines the distribution of city names, she finds a large number of singleton city names, such as \texttt{San Francisco:SF}.  She simply augments the cost model to penalize the number of singleton city names, and \sys identifies the need to first split record 1  before also changing `SFO` to `SF` in order to satisfy the quality function.
-\end{example}
-
-
-Below, we will present the notion of cleaning operators and their relationship with the conditional assignments that are composed into cleaning plans, quality functions that serve as the cost model, and the formal problem statement that \sys will solve.
-
-  \begin{table}[t]
-	\small
-  \centering
-  \begin{tabular}{|l|l|l|}
-  \hline
-  \rowcolor[HTML]{000000} 
-  & \white{name}            & \white{code}   \\ \hline
-  1 & \red{\textbf{San Francisco:SFO}}                    &    \red{\textbf{`'}}                               \\ \hline
-  2& \red{\textbf{New York}}           & NY                                  \\ \hline
-  3 & New York City                    & \red{\textbf{NYC}} \\ \hline
-  4 & \red{\textbf{San Francisc}}      & SF                                  \\ \hline
-  5 & San Francisco                         & SF                                 \\ \hline
-  7 & New York City                    & NY                                  \\ \hline
-  \end{tabular}
-    \caption{The \texttt{City} relation contains two attributes \textsf{name} and \textsf{code}. 
-Some of the cells contain errors highlighted in \red{red}. \label{example}}
-  \end{table}
+\section{Repairs}\label{s:problem}
+This section presents the problem setting and definitions.  
 
 \subsection{Conditional Assignments}
 \sys generates cleaning pipelines that are composed of conditional assignments, which conditionally assign value $v$ to attribute $r[attr]$ if predicate $pred$ evaluates to true:
@@ -45,17 +20,7 @@ Some of the cells contain errors highlighted in \red{red}. \label{example}}
 A cleaning pipeline is a composition of conditional assignment operations, where $(ca_2 \circ ca_1)(r) = ca_2(ca_1(r))$. Note that $ca_1$'s changes may be overwritten by $ca_2$.  A composition can similarly be evaluated over a relation $R$: $(ca_2\circ ca_1)(R) = ca_2(ca_1(R))$.    Given a set of conditional assignments $\mathcal{C}$, the set of all compositions from $\mathcal{C}$ defines the plan space $\mathcal{P}$.   Next, we will discuss how the set of conditional assignments $\mathcal{C}$ is generated.
 
 
-\subsection{Cleaning Operators}
-
-% \sys searches through a parameterized library of data cleaning operations to find repairs to a table. We will see that the simple experiment in the previous section about identifying syntatic inconsistencies is actually quite common and a practical problem for existing systems.
-
-\sys manages a library of cleaning operators $L = \{o_1, \cdots, o_m\}$ that represent specialized data cleaning systems or functions.  A given operator $o_i(\phi_k, R)$ runs over a relation $R$ and is parameterized with parameters $\phi_k$ from a space of allowable parameter values $\Phi_i$.  For convenience, an operator can be defined with respect to a tuple $r\in R$  or an attribute value, rather than the whole relation, and \sys will automatically translate it into an operator over the full relation.
-
-\begin{example}\it\label{e:2}
-  The spell checker  \texttt{ispell(d, attr)} in Example~\ref{e:1} can be tuned by setting a maximum edit distance $d$ between the dictionary word and the attribute value $r[attr]$.  The parameter space is thus $\mathbb{N}$ for $d$, and all attributes in the relation for $attr$. Similarly, \texttt{edit\_match(d, attr)} is an edit distance matcher that searches for other \texttt{attr} values in $R$ within an edit distance $d$ of $r[attr]$, and sets $r[attr]$ to the most frequent value.  In this case, the value of the assignment is computed dynamically.  Finally \texttt{chase(fd, R)} is parameterized by a functional dependency $fd$ from a user-provided set of FDs, and will run the chase algorithm~\cite{Deutsch2008TheCR} for $fd$. 
-\end{example}
-
-Each parameterized operator $o_i(p_k, R)$ returns a set of conditional assignment operations whose predicates are non-overlapping.  The set of operations can change depending on the input relation $R$.   % For convenience, let library $L=\{\}$let $l_{i,k} = o_i(\phi_k, R)$ denote a parameterized version of $o_i$, and library $L = \{l_{i,j}, \cdots \}$ be the set of all possible parameterized operators.
+  % For convenience, let library $L=\{\}$let $l_{i,k} = o_i(\phi_k, R)$ denote a parameterized version of $o_i$, and library $L = \{l_{i,j}, \cdots \}$ be the set of all possible parameterized operators.
 
 % L = \{\texttt{l}_1,...,\texttt{l}_N\}$ of data cleaning operators that are specialized cleaning systems or functions that will be used to build a cleaning pipeline. Each operator takes in parameters $\phi_i$ from an overall (continuous or discrete) set of parameters $\Phi_i$:
 
@@ -70,7 +35,7 @@ Each parameterized operator $o_i(p_k, R)$ returns a set of conditional assignmen
 
 
 
-\subsection{Quality Functions}
+\section{Quality Functions}
 
 A quality function measures a specific notion of cleanliness for a relation, and is used as the cost model for the pipeline search.  The predominant way that quality functions are defined is in terms of SQL aggregation queries. For example, the number of functional dependency violations (e.g., $\texttt{city\_name} \rightarrow \texttt{city\_code}$) is expressible as:
 {\small\begin{lstlisting}
@@ -102,7 +67,7 @@ We designed the quality function in this way for several reasons.  SQL aggregati
 
 
 
-
+\iffalse
 \subsection{Problem Statement}
 We now present the search problem to clean cell-inconsistencies:
 \begin{problem}[Search Problem]%[$\textsf{clean}(Q,R_{dirty},L)$]
@@ -114,6 +79,7 @@ p^* = ~ \argmin_{p \in P} Q( p(R_{dirty}) ).
 $p^*(R_{dirty})$ returns the cleaned table, and $p^*$ can potentially be applied to any table that is union compatible with $R_{dirty}$.  A desirable property of this problem formulation is that it directly trades off runtime with cleaning accuracy and can be stopped at any time (though the cleaning program may be suboptimal).
 
 This problem is challenging because the set of all parameterized cleaning operators can be too large to materialize, and the set of possible conditional assignments is potentially unbounded.  We  rely on properties of the quality function to quickly assess the quality of candidate pipelines in parallel. The next sections describe our system architecture and optimizations to efficiently search the plan space.
+\fi
 
 % To limit the search space, we assume predicates are of the form $attr = v$ where $v$ is a value found in the relation.  We also
 %  At the limit, \sys simply explores $P$ and identifies the optimal plan.
