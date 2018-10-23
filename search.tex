@@ -1,4 +1,4 @@
-\section{Optimizations}\label{s:search}
+\section{Search Algorithm}\label{s:search}
 This section describes our system optimizations.
 
 \begin{figure}[t]
@@ -58,38 +58,9 @@ By default, users simply specify an operator's parameter domain as a list of val
 %which have the property that if the quality function    Another broad class of parameters in data cleaning methods are numerical parameters like thresholds and inference parameters. For these parameters, the user specifies a range (or a multi-dimensional grid). Often times, these parameters correspond to confidence metrics. In the example with the \texttt{City} table, the \texttt{ispell} method has a acceptance threshold for spell-checking. In these cases, we recommend that this search space is ordered fine-to-coarse. Where the most restrictive threshold is evaluated first towards increasingly less restrictive thresholds. 
 
 
-\subsection{Quality Evaluator}\label{s:qualityivm}
-Most cleaning operators modify significantly fewer records than the entire dataset.  Since quality functions are simply aggregation queries, \sys can incrementally evaluate the quality function over the fixed records rather than the full dataset.  
-This is exactly the process of incremental view maintenance, and we use standard techniques to incrementally compute quality functions.
-
-Suppose we have relation $R$, quality function $q$, and a set of conditional assignment expressions $C$.  When possible, \sys computes \red{$q(R)$} once and then for each of the expressions $c \in C$ compute a delta such $q(c(R)) = \red{q(R)} + \delta_c(q(R))$.
-For many types of quality functions such incremental computation can be automatically synthesized and can greatly save on computation time.
-Currently, this process is not automatic and \sys relies on programmer annotations for incremental updates.
-It is not hard to automate this process when possible, but this is orthogonal to the topic studied in this paper.
-The property that we would have to test is self-maintanability~\cite{gupta1996data}, and we would have to implement delta computation in relational algebra. 
-
-Let us consider a concrete example with the quality function $q_1$, a functional dependency checker, from the previous section.
-$R'$ is the resulting relation after applying \texttt{c} to all of the records.
-Let $r_{pred}$ be the set of records that satisfy the predicate of the conditional assignment expression and $r_{pred}'$ be the resulting transformed records.
-$q_1$ can be expressed in relational algebra in the following way:
-\[
-q_1(R') = \textsf{count}( R' \bowtie R' )
-\]
-$R'$ can be described in terms of $R$:
-\[
-R' = R - r_{pred} + r_{pred}' 
-\]
-leading to the following expression:
-\[
-q_1(R') = \red{q_1(R)} - \textsf{count}( r_{pred} \bowtie R )  + \textsf{count}( r'_{pred} \bowtie R )
-\]
-Evaluating this quality function using a hash join reduces the incremental evaluation cost to roughly linear in the size of the number records changed, rather than the size of the relation.
 
 % The consequence is that evaluating changes in quality can be very efficient for a large class of data cleaning problems.  The architecture of \sys is designed to exploit this property.  We assume conditional assignment generation to be expensive but quality evaluation to be fast.  An architecture that runs the entire pipeline before seeing the resultant quality is wasteful.
 
-
-\subsection{Pipeline Merging}
-In general, conditional assignments are not commutative, meaning that $c_i\circ c_j \ne c_j\circ c_i$.  Thus, each possible ordering must be explored sequentially, which leads to an exponential search-space growth.  For instance, with $k$ conditional assignments, there are $\sum_{n\le k} n!$ possible orderings up to length $k$.  However, if $c_i$ and $c_j$'s predicates are non-overlapping, then their operations are commutative ($c_i\circ c_j = c_j\circ c_i$) and reduces the search space to $2^k$.  Based on this observation, we use a heuristic to opportunistically merge candidate pipelines if their predicates are disjoint and the resulting pipeline increases the quality function.  Specifically, let predicate $s_{pred}$ be the union of all of the predicates of each conditional assignment in $s$.  If two candidate pipelines $\bar{s},s'$ have disjoin predicates $\bar{s}_{pred}$ and $s'_{pred}$, then we replace both candidates if their composition has a higher quality.  Algorithm~\ref{alg:main} describes the algorithm.
 
 
 \subsection{Parallelization} 

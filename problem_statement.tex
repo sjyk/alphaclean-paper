@@ -1,43 +1,58 @@
 \section{Repairs}\label{s:problem}
-This section presents the problem setting and definitions.  
+A main insight of \sys is that a common intermediate representation for repairs can facilitate more efficient data cleaning pipeline optimization.
+Data cleaning frameworks that are interfaced to \sys asynchronously pool together suggested data repairs.
 
-\subsection{Conditional Assignments}
-\sys generates cleaning pipelines that are composed of conditional assignments, which conditionally assign value $v$ to attribute $r[attr]$ if predicate $pred$ evaluates to true:
+\subsection{Repair Format}
+Repairs are specified as ``conditional assignments'', which are sentences of the form ``if a tuple satisfies a condition, then set an attribute to a specified value'': 
 {\small\begin{verbatim}
     ca(r):
-      if pred(r): r[attr] = v 
+      if pred(r): r[attr] = v
       return r
 \end{verbatim}
 }
-\noindent A conditional assignment can evaluate over relation $R$ by evaluating over each record in the relation:  $ca(R) = \{ca(r) | r \in R\}$.   Note that conditional assignments can be coarse or fine-grained depending on the specificity of the predicate.  
+The predicates are in a restricted language consisting of equality clauses and single attribute inequalities, e.g., 
+{\small\begin{verbatim}
+r[city_code] == 'NY'     
+r[id] > 3      
+r[name, code] == ('New York', 'NY')
+\end{verbatim}
+}
+This restriction on predicates allows for efficient conflict testing; determining whether two repairs are independent of each other. 
+Despite the restriction, it is still expressive enough to capture many important types of data cleaning. Because, in the degenerate case, we can simply use the tuple's primary key as a a predicate attribute. In that case, for each tuple there is a separate conditional assignment. 
 
 \begin{example}\it
-  \texttt{ca(code.prefix(``NY''), code, ``NYC'')} sets the code to ``NYC'' for all records where the city code starts with ``NY''.  This single condition could be replaced with three operations with predicates  \texttt{id=2}, \texttt{id=3}, \texttt{id=4} {\it for the example table}, where operation can be executed and added to a cleaning pipeline independently. Our experiments highlight the role that different granularities play in the runtime and quality of the search results.
+  \texttt{ca(code.prefix(``NY''), code, ``NYC'')} sets the code to ``NYC'' for all records where the city code starts with ``NY''.  This single condition could be replaced with three operations with predicates  \texttt{id=2}, \texttt{id=3}, \texttt{id=4} {\it for the example table}, where operation can be executed and added to a cleaning pipeline independently. 
+ \end{example}
+ 
+ The interesting cases are when we can aggregate repairs together under a single, more-informative predicate. For example, we often find this with numerical outlier detection libraries that identify a threshold on attribute values after which they are deemed outliers.
+ 
+ \begin{example}\it
+  \texttt{ca( Population < 0, Population, NULL')} sets a population attribute to NULL for all records where it is less than 0. 
  \end{example}
 
-% The size of the search space can be controlled by how coarse- or fine-grained these repair functions are.  For example, one could wrap the entire results of \texttt{ispell(rec)} into a single function or break it up into each modification per distinct value.  The result is that $x_i$ is a set of each such repair, and over the entire library and different parameter settings, we can generate a set $X$ of all repairs possible.
+\subsection{Operations Over Repairs}
+A cleaning pipeline is defined as composition of conditional assignments, where $(ca_2 \circ ca_1)(r) = ca_2(ca_1(r))$. Note that $ca_1$'s changes may be overwritten by $ca_2$.  A composition can similarly be evaluated over a relation $R$: $(ca_2\circ ca_1)(R) = ca_2(ca_1(R))$.    
+The next section will describe the interface to evaluate the quality of a cleaning pipeline in more detail. The basic search problem that underpins \sys is a search over possible compositions of conditional assignments to optimize a quality function $Q$:
+\begin{problem}[Search Problem]%[$\textsf{clean}(Q,R_{dirty},L)$]
+Given quality function $Q$, a set of frameworks $L$, relation $R_{dirty}$, find valid plan (composition of conditional assignments) $p^* \in \mathcal{P}$ that optimizes $Q$:
+\[
+p^* = ~ \argmin_{p \in P} Q( p(R_{dirty}) ).  
+\]
+\end{problem}
+$p^*(R_{dirty})$ returns the cleaned table, and $p^*$ can potentially be applied to any table that is union compatible with $R_{dirty}$. 
 
-A cleaning pipeline is a composition of conditional assignment operations, where $(ca_2 \circ ca_1)(r) = ca_2(ca_1(r))$. Note that $ca_1$'s changes may be overwritten by $ca_2$.  A composition can similarly be evaluated over a relation $R$: $(ca_2\circ ca_1)(R) = ca_2(ca_1(R))$.    Given a set of conditional assignments $\mathcal{C}$, the set of all compositions from $\mathcal{C}$ defines the plan space $\mathcal{P}$.   Next, we will discuss how the set of conditional assignments $\mathcal{C}$ is generated.
-
-
-  % For convenience, let library $L=\{\}$let $l_{i,k} = o_i(\phi_k, R)$ denote a parameterized version of $o_i$, and library $L = \{l_{i,j}, \cdots \}$ be the set of all possible parameterized operators.
-
-% L = \{\texttt{l}_1,...,\texttt{l}_N\}$ of data cleaning operators that are specialized cleaning systems or functions that will be used to build a cleaning pipeline. Each operator takes in parameters $\phi_i$ from an overall (continuous or discrete) set of parameters $\Phi_i$:
-
-% We could further have a \texttt{edit\_matcher(thresh, attr)}, which applies searches for pairs of values within a certain edit distance and merges them to the most frequent value (as with the previous method the parameter space is the threshold in $\mathbb{N}$).
-%We could also have a functional dependency resolver \texttt{fd\_resolve(fd)}, which enforces the specified functional dependency with a chase algorithm (the parameter space is the choice  $\{ \texttt{city\_name} \rightarrow \texttt{city\_code}, \texttt{city\_code} \rightarrow \texttt{city\_name}\}$).
-% Users define the library and the set of allowable parameters for each method.
-
-%\vspace{0.5em}\noindent\textbf{Method API: } Each method in the library must implement a function that applies itself to a relation $r$ and returns the results of its cleaning $x_i$:
-%\[
-%x_i = \texttt{l}_i.\texttt{generate(r)}
-%\]
-
+In general, conditional assignments are not commutative, meaning that $c_i\circ c_j \ne c_j\circ c_i$.  However, the intermediate representation allows us to efficiently test if conditional assignments are commutative and can be run in parallel.
+If $c_i$ and $c_j$'s predicates are non-overlapping and their assignment values do not affect this independence, then their operations are commutative ($c_i\circ c_j = c_j\circ c_i$). 
+Based on this observation, we use a heuristic to opportunistically merge candidate pipelines if they are disjoint in such as way and both pipelines independently increase the quality function.
 
 
 \section{Quality Functions}
+Now, we have to define the API for assessing the quality of a pipeline.
+A quality function measures a specific notion of cleanliness for a relation, and is used as the cost model for the pipeline search.  
+Our goal is to define these quality functions in a sufficiently ``white box'' way to be able share computation when possible over different search expansions.
 
-A quality function measures a specific notion of cleanliness for a relation, and is used as the cost model for the pipeline search.  The predominant way that quality functions are defined is in terms of SQL aggregation queries. For example, the number of functional dependency violations (e.g., $\texttt{city\_name} \rightarrow \texttt{city\_code}$) is expressible as:
+\subsection{SQL Aggregate Queries}
+Quality functions are defined is in terms of SQL aggregation queries. For example, the number of functional dependency violations (e.g., $\texttt{city\_name} \rightarrow \texttt{city\_code}$) is expressible as:
 {\small\begin{lstlisting}
   q1(T): SELECT count(1)
          FROM T as c1, T as c2,
@@ -61,6 +76,34 @@ Finally, the user can embed the downstream application as a user defined functio
 \noindent \sys lets the user compose linear combinations of quality functions together. We model the composition over $n$ individual quality functions as $Q(T) = \sum_{i=1}^n w_iq_i(T)$.  For example, $n=2$ in the example, and captures the semantic functional dependency issues as well as the syntactic string splitting errors in a single cost model.  Our experiments simply set $w_i=\frac{1}{n}$.
 
 We designed the quality function in this way for several reasons.  SQL aggregations can be incrementally computed and maintained, and can be efficiently approximated.  This is important because each conditional assignment typically modifies a small set of records, and thus allows efficient re-computation that scales to the number of cleaned records rather than the size of the dataset.  The linear compositions enables parallelization across each $q_i$ term, and the aggregation functions are typically algebraic functions that can be parallelized across data partitions.  The combination of incremental maintenance, and data and quality function parallelization speeds up evaluation by up to 20x in our experiments.
+
+\subsection{Incremental Maintenance}\label{s:qualityivm}
+Most cleaning operators modify significantly fewer records than the entire dataset.  Since quality functions are simply aggregation queries, \sys can incrementally evaluate the quality function over the fixed records rather than the full dataset.  
+This is exactly the process of incremental view maintenance, and we use standard techniques to incrementally compute quality functions.
+
+Suppose we have relation $R$, quality function $q$, and a set of conditional assignment expressions $C$.  When possible, \sys computes \red{$q(R)$} once and then for each of the expressions $c \in C$ compute a delta such $q(c(R)) = \red{q(R)} + \delta_c(q(R))$.
+For many types of quality functions such incremental computation can be automatically synthesized and can greatly save on computation time.
+Currently, this process is not automatic and \sys relies on programmer annotations for incremental updates.
+It is not hard to automate this process when possible, but this is orthogonal to the topic studied in this paper.
+The property that we would have to test is self-maintanability~\cite{gupta1996data}, and we would have to implement delta computation in relational algebra. 
+
+Let us consider a concrete example with the quality function $q_1$, a functional dependency checker, from the previous section.
+$R'$ is the resulting relation after applying \texttt{c} to all of the records.
+Let $r_{pred}$ be the set of records that satisfy the predicate of the conditional assignment expression and $r_{pred}'$ be the resulting transformed records.
+$q_1$ can be expressed in relational algebra in the following way:
+\[
+q_1(R') = \textsf{count}( R' \bowtie R' )
+\]
+$R'$ can be described in terms of $R$:
+\[
+R' = R - r_{pred} + r_{pred}' 
+\]
+leading to the following expression:
+\[
+q_1(R') = \red{q_1(R)} - \textsf{count}( r_{pred} \bowtie R )  + \textsf{count}( r'_{pred} \bowtie R )
+\]
+Evaluating this quality function using a hash join reduces the incremental evaluation cost to roughly linear in the size of the number records changed, rather than the size of the relation.
+
 
 % Without loss of generality, let $Q(R)$ be a quality function which maps from the set of all possible instances $Q(R): \mathcal{R} \mapsto [0,1]$ be a quality function where $0$ implies that the instance $R$ is clean, and a higher value correspond to a dirtier table.
 % Since running a plan $p$ on the initial dirty table $R_{dirty}$ returns another table, $Q(p(R_{dirty}))$ is able to return a quality score for any pipeline in the plan space.
